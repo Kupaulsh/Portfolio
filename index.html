@@ -1,0 +1,3207 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Tech Portfolio</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+html, body { height: 100%; margin: 0; }
+* { box-sizing: border-box; }
+
+.app-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: clip;
+  scroll-behavior: smooth;
+}
+
+/* Allow the backend section crack to bleed to the right edge */
+#skillBackend {
+  overflow: visible !important;
+}
+#skillBackend .max-w-6xl {
+  overflow: visible !important;
+}
+
+#particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+#physicsSim { border-radius: 12px; cursor: crosshair; display: block; }
+#pongCanvas { border-radius: 12px; display: block; }
+#generativeCanvas { border-radius: 12px; display: block; }
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(56,189,248,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.section-reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.section-reveal.visible { opacity: 1; transform: translateY(0); }
+
+.glow-card {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56,189,248,0.22);
+  transition: box-shadow 0.3s, transform 0.3s;
+  box-shadow: 0 2px 12px rgba(56,189,248,0.06), 0 1px 3px rgba(14,165,233,0.05);
+}
+.glow-card:hover {
+  box-shadow: 0 0 28px rgba(56,189,248,0.2), 0 4px 20px rgba(14,165,233,0.1);
+  transform: translateY(-2px);
+  border-color: rgba(56,189,248,0.4);
+}
+
+.nav-link { position: relative; }
+.nav-link::after {
+  content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9); transition: width 0.3s;
+}
+.nav-link:hover::after { width: 100%; }
+
+.app-wrapper::-webkit-scrollbar { display: none; }
+.app-wrapper { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes cogSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(56,189,248,0.4); }
+  100% { box-shadow: 0 0 0 15px rgba(56,189,248,0); }
+}
+.pulse-ring { animation: pulse-ring 2s infinite; }
+
+/* ── CSS VARIABLES for accent color ── */
+:root {
+  --accent1: #38bdf8;
+  --accent2: #0ea5e9;
+  --accent-rgb: 56,189,248;
+}
+
+/* ── GLOBAL TEXT SIZE INCREASE ── */
+.skill-section h2 { font-size: 3rem !important; }
+.skill-section p { font-size: 1.12rem !important; line-height: 1.8 !important; }
+section h2.text-3xl { font-size: 2.1rem !important; }
+section p.text-sm { font-size: 0.95rem !important; }
+section h3 { font-size: 1.1rem !important; }
+
+/* ── CARDS GRID: always 2-col wide, 1-col narrow, centered with edge gap ── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (max-width: 640px) {
+  .cards-grid { grid-template-columns: 1fr; padding: 0 20px; }
+}
+
+/* ── CARD BLUR BACKGROUND 30% ── */
+.glow-card {
+  background: rgba(255,255,255,0.3) !important;
+  backdrop-filter: blur(18px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.5) !important;
+}
+body.dark-mode .glow-card {
+  background: rgba(15,23,42,0.3) !important;
+}
+
+/* ── GLOW MODE ── */
+body.glow-mode #particleCanvas { filter: brightness(1.4); }
+body.glow-mode #particleCanvas { filter: brightness(1.4); }
+
+/* ── LED Signs ── */
+@media (min-width: 1024px) {
+  #ledLeft, #ledRight { width: 320px !important; gap: 52px !important; }
+  #ledLeft  { padding-left: 28px !important; }
+  #ledRight { padding-right: 28px !important; }
+  .led-sign > div { padding: 22px 32px !important; border-radius: 18px !important; }
+  .led-sign span  { font-size: 1.4rem !important; letter-spacing: .06em; }
+  #wire0,#wire1,#wire2 { right: -100px !important; width: 100px !important; }
+  #wire3,#wire4,#wire5 { left:  -100px !important; width: 100px !important; }
+}
+.led-sign > div { position:relative; display:flex; align-items:center; justify-content:center; text-align:center; }
+#ledLeft .led-sign, #ledRight .led-sign { width:100%; }
+
+/* LED flicker animation */
+@keyframes ledFlicker {
+  0%,100% { opacity:1; }
+  92% { opacity:1; }
+  93% { opacity:0.4; }
+  94% { opacity:1; }
+  96% { opacity:0.6; }
+  97% { opacity:1; }
+}
+.led-sign.lit { animation: ledFlicker 4s infinite; }
+.led-sign.lit:nth-child(2) { animation-delay: 1.3s; }
+.led-sign.lit:nth-child(3) { animation-delay: 2.7s; }
+
+/* Wire SVG canvas overlay */
+#ledWireCanvas {
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:2;
+}
+
+/* ── Landing page ── */
+#landingPage { font-family: 'IBM Plex Mono', monospace; }
+#landingCanvas { cursor: grab; }
+#landingCanvas:active { cursor: grabbing; }
+
+/* Hide default cursor globally when cog glow cursor is active */
+body.cog-glow-active { cursor: none !important; }
+body.cog-glow-active * { cursor: none !important; }
+
+/* ── Glowing cog cursor ── */
+#cogGlowCursor { transition: none; }
+
+/* ── Frontend overlay ── */
+#frontendOverlay { transition: opacity 0.5s ease; }
+/* Fist cursor when punch overlay is active */
+body.fist-mode,
+body.fist-mode * { cursor: none !important; }
+#fistCursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  font-size: 72px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  display: none;
+  filter: drop-shadow(0 0 12px rgba(239,68,68,0.8));
+  transition: transform 0.08s ease;
+  user-select: none;
+}
+#frontendPunchBtn:active { transform: scale(0.94) !important; }
+@media (max-width: 640px) {
+  #punchIconSvg { display: none !important; }
+  #frontendPunchBtn { gap: 0 !important; }
+  #fistCursor { display: none !important; }
+  body.fist-mode, body.fist-mode * { cursor: auto !important; }
+}
+
+/* ── Pixel buttons ── */
+#skillFrontend [data-no-recolor] { font-family: 'Inter', 'Outfit', sans-serif !important; }
+
+.accent-gradient-text {
+  text-shadow: 0 0 18px var(--accent1), 0 0 40px var(--accent2);
+  filter: brightness(1.15);
+}
+body.glow-mode .accent-color-text {
+  text-shadow: 0 0 10px var(--accent1);
+}
+@keyframes particleGlow {
+  0%,100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ── GLOW TOGGLE BUTTON ── */
+.glow-toggle-btn {
+  position: relative;
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(56,189,248,0.4);
+  background: rgba(15,23,42,0.6);
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  overflow: hidden;
+}
+.glow-toggle-btn.active {
+  background: rgba(56,189,248,0.15);
+  border-color: var(--accent1);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb),0.5), inset 0 0 12px rgba(var(--accent-rgb),0.1);
+}
+.glow-toggle-btn .knob {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #38bdf8;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+}
+.glow-toggle-btn.active .knob {
+  transform: translateX(32px);
+  box-shadow: 0 0 10px var(--accent1), 0 0 20px rgba(var(--accent-rgb),0.6);
+  background: var(--accent1);
+}
+.glow-toggle-btn .stars {
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 8px;
+  color: var(--accent1);
+  letter-spacing: 1px;
+}
+.glow-toggle-btn.active .stars { opacity: 1; }
+
+/* ── DARK MODE ── */
+body.dark-mode #appWrapper {
+  background-color: #0f172a !important;
+  background-image: linear-gradient(rgba(var(--accent-rgb),0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--accent-rgb),0.06) 1px,transparent 1px) !important;
+}
+/* Dark mode: ALL text turns light */
+body.dark-mode { color: #e2e8f0 !important; }
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode p, body.dark-mode span:not(.accent-gradient-text):not([style*="color:#38bdf8"]):not([style*="color:#0284c7"]):not([style*="color:#22c55e"]) { color: #e2e8f0 !important; }
+body.dark-mode [style*="color:#0f172a"] { color: #f1f5f9 !important; }
+body.dark-mode [style*="color:#1e293b"] { color: #e2e8f0 !important; }
+body.dark-mode [style*="color:#475569"] { color: #cbd5e1 !important; }
+body.dark-mode [style*="color:#64748b"] { color: #94a3b8 !important; }
+body.dark-mode [style*="color:#94a3b8"] { color: #94a3b8 !important; }
+body.dark-mode h1[style*="color:#0f172a"], body.dark-mode h2[style*="color:#0f172a"] { color: #f8fafc !important; }
+body.dark-mode #appWrapper { color: #e2e8f0; }
+body.dark-mode .glow-card, body.dark-mode .glow-card h3, body.dark-mode .glow-card p, body.dark-mode .glow-card span { color: #e2e8f0 !important; }
+body.dark-mode .glow-card { background: rgba(15,23,42,0.3) !important; border-color: rgba(var(--accent-rgb),0.22) !important; }
+/* Light mode: ALL text turns dark */
+body:not(.dark-mode) [style*="color:#e2e8f0"] { color: #0f172a !important; }
+body:not(.dark-mode) [style*="color:#cbd5e1"] { color: #1e293b !important; }
+body:not(.dark-mode) [style*="color:#94a3b8"]:not(.accent-color-text) { color: #64748b !important; }
+
+/* ── BLURRED CARDS ── */
+.blur-card {
+  background: rgba(255,255,255,0.72) !important;
+  backdrop-filter: blur(18px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.4) !important;
+  border: 1px solid rgba(var(--accent-rgb),0.22) !important;
+}
+body.dark-mode .blur-card {
+  background: rgba(15,23,42,0.55) !important;
+  border-color: rgba(var(--accent-rgb),0.25) !important;
+}
+
+/* ── COG CURSOR ── */
+#cogCursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  top: 0; left: 0;
+  width: 32px; height: 32px;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s;
+  display: none;
+}
+body.cog-cursor-mode { cursor: none !important; }
+body.cog-cursor-mode * { cursor: none !important; }
+@keyframes cogCursorSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+body.cog-cursor-mode #cogCursor {
+  display: block;
+  animation: cogCursorSpin 1.2s linear infinite;
+}
+.accent-border { border-color: rgba(var(--accent-rgb),0.25) !important; }
+.accent-bg-faint { background: rgba(var(--accent-rgb),0.12) !important; }
+.accent-color-text { color: var(--accent2) !important; }
+.accent-gradient-text {
+  background: linear-gradient(90deg, var(--accent1), var(--accent2)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* =
+   RESPONSIVE SIZING - DESKTOP (wide ≥ 1024px)
+   = */
+@media (min-width: 1024px) {
+  /* Hero */
+  h1#heroName                { font-size: 4.5rem !important; letter-spacing: -0.02em; }
+  p#heroTagline              { font-size: 1.35rem !important; }
+  p#aboutText                { font-size: 1rem !important; }
+
+  /* Skill section headings & body copy */
+  .skill-section h2          { font-size: 3rem !important; }
+  .skill-section p           { font-size: 1.05rem !important; line-height: 1.8 !important; }
+
+  /* Section headings (Education, Skills, etc.) */
+  section h2.text-3xl        { font-size: 2.1rem !important; }
+  section p.text-sm          { font-size: 0.92rem !important; }
+  section h3                 { font-size: 1.05rem !important; }
+
+  /* Bigger fonts for skill sections on wide screens */
+  #skillBackend h2, #skillFrontend h2, #skillDB h2 { font-size: 3.6rem !important; }
+  #skillBackend p,  #skillFrontend p,  #skillDB p  { font-size: 1.15rem !important; line-height: 1.85 !important; }
+  #skillBackend .max-w-2xl, #skillFrontend .max-w-2xl, #skillDB .max-w-2xl { max-width: 860px !important; }
+  #skillBackend h2 .accent-gradient-text { font-size: inherit !important; }
+
+  /* Skill list items inside sections */
+  .skill-section [style*="font-size:.85rem"]  { font-size: 0.92rem !important; }
+  .skill-section [style*="font-size:.78rem"]  { font-size: 0.82rem !important; }
+
+  /* Cog menu nav links */
+  #cogMenu a                 { font-size: 14px !important; }
+
+  /* ── Consistent card content styling ── */
+  .cards-grid .glow-card,
+  .cards-grid .blur-card {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Consistent heading inside cards */
+  .cards-grid .glow-card h3,
+  .cards-grid .blur-card h3 {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Consistent body text */
+  .cards-grid .glow-card p,
+  .cards-grid .blur-card p {
+    font-size: 0.8rem !important;
+    color: #94a3b8 !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Consistent cert card image height */
+  .cards-grid .glow-card .h-48 {
+    height: 160px !important;
+  }
+
+  /* Consistent project card image height */
+  .cards-grid .glow-card .h-64 {
+    height: 180px !important;
+  }
+
+  /* Playground canvas consistent height */
+  .cards-grid canvas {
+    height: 260px !important;
+  }
+
+  /* ── Consistent width for all content sections ── */
+  section.max-w-6xl {
+    max-width: 1280px !important;
+  }
+
+  /* ── 2-column grid for Technical Skills, Certifications, Playground, Projects ── */
+  /* Technical Skills & Certifications use .cards-grid */
+  .cards-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    max-width: 100% !important;
+    gap: 24px !important;
+  }
+
+  /* Playground internal grids → 2 col */
+  #playground .grid {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 24px !important;
+  }
+
+  /* Projects cards → 2 col */
+  #projects .cards-grid,
+  #projects > div > div[class*="grid"] {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 24px !important;
+  }
+
+  /* Education stays single column - override any grid */
+  section:has(h2:first-of-type) .space-y-4 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Playground section */
+  #playground h2             { font-size: 2rem !important; }
+  #playground h3             { font-size: 1rem !important; }
+  #playground p              { font-size: 0.85rem !important; }
+
+  /* Cards padding */
+  .glow-card.rounded-2xl     { padding: 1.5rem !important; }
+
+  /* Tag badges */
+  .inline-flex.rounded-full  { font-size: 0.75rem !important; }
+
+  /* Cog button */
+  #cogBtn                    { width: 44px !important; height: 44px !important; }
+  #cogSvg                    { width: 38px !important; height: 38px !important; }
+
+  /* Two-column skill grids stay side-by-side */
+  .skill-section [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 64px !important;
+  }
+
+  /* Feature demo panel */
+  #feDemo                    { min-height: 380px !important; }
+}
+
+/* =
+  /* Hero taller on wide screens */
+  section[style*="min-height:100vh"] {
+    min-height: 100vh !important;
+  }
+
+  /* Skill section h2 override (beats inline style via specificity) */
+  #skillBackend h2, #skillFrontend h2, #skillDB h2 {
+    font-size: 3.6rem !important;
+  }
+  #skillBackend p, #skillFrontend p, #skillDB p {
+    font-size: 1.18rem !important;
+    line-height: 1.85 !important;
+  }
+  #skillBackend .max-w-2xl,
+  #skillFrontend .max-w-2xl,
+  #skillDB .max-w-2xl { max-width: 880px !important; }
+
+}
+
+/* RESPONSIVE SIZING - TABLET (641px-1023px)
+   = */
+@media (min-width: 641px) and (max-width: 1023px) {
+  h1#heroName                { font-size: 3.2rem !important; }
+  p#heroTagline              { font-size: 1.1rem !important; }
+  p#aboutText                { font-size: 0.9rem !important; }
+
+  .skill-section h2          { font-size: 2.2rem !important; }
+  .skill-section p           { font-size: 0.95rem !important; }
+
+  /* Stack skill sections vertically on tablet */
+  .skill-section [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+
+  section h2.text-3xl        { font-size: 1.75rem !important; }
+  section h3                 { font-size: 0.95rem !important; }
+
+  #cogBtn                    { width: 40px !important; height: 40px !important; }
+  #cogSvg                    { width: 32px !important; height: 32px !important; }
+}
+
+/* =
+   RESPONSIVE SIZING - MOBILE (≤ 640px)
+   Android & iPhone
+   = */
+@media (max-width: 640px) {
+  /* ── Hero ── */
+
+  section[style*="min-height:100vh"] {
+    min-height: 100vh !important;
+    padding-top: 80px !important;
+    padding-bottom: 32px !important;
+  }
+  h1#heroName                { font-size: 2rem !important; letter-spacing: -0.01em; line-height: 1.15 !important; }
+  p#heroTagline              { font-size: 0.95rem !important; margin-bottom: 1rem !important; }
+  p#aboutText                { font-size: 0.82rem !important; line-height: 1.6 !important; }
+
+  /* "Available for work" badge */
+  .pulse-ring + *            { font-size: 0.7rem !important; }
+
+  /* ── Skill sections ── */
+  .skill-section             { padding: 60px 0 70px !important; min-height: unset !important; }
+  /* Prevent overflow from causing overlap */
+  #skillBackend              { overflow: hidden !important; }
+  #skillFrontend             { overflow: hidden !important; }
+  #skillDB                   { overflow: hidden !important; }
+  /* Sections can't bleed into each other */
+  .skill-section             { position: relative !important; z-index: 1 !important; }
+
+  /* ── Wider crack on mobile ── */
+  #skillBackend div[style*="filter:blur"] {
+    width: 95% !important;
+  }
+
+  /* ── Smaller fonts for skill sections on mobile ── */
+  #skillBackend h2, #skillFrontend h2, #skillDB h2 {
+    font-size: 1.6rem !important;
+    line-height: 1.2 !important;
+  }
+  #skillBackend p, #skillFrontend p, #skillDB p {
+    font-size: 0.82rem !important;
+    line-height: 1.65 !important;
+  }
+  #skillBackend .max-w-2xl, #skillFrontend .max-w-2xl, #skillDB .max-w-2xl {
+    padding: 0 20px !important;
+  }
+  /* Skill list item text */
+  #skillBackend div[style*="font-size:.85rem"],
+  #skillFrontend div[style*="font-size:.85rem"],
+  #skillDB div[style*="font-size:.95rem"] {
+    font-size: 0.78rem !important;
+  }
+  #skillBackend div[style*="font-size:.78rem"],
+  #skillFrontend div[style*="font-size:.78rem"] {
+    font-size: 0.72rem !important;
+  }
+  /* DB cards smaller */
+  #skillDB .section-reveal > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .skill-section h2          { font-size: 1.7rem !important; margin-bottom: 12px !important; }
+  .skill-section p           { font-size: 0.88rem !important; line-height: 1.7 !important; }
+
+  /* Stack all two-column grids on mobile */
+  .skill-section [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+
+  /* Canvas elements - keep them visible but shorter */
+  #physicsSim, #pongCanvas, #neonCanvas, #generativeCanvas {
+    height: 220px !important;
+  }
+
+
+  /* ── Section headings (Education, Skills, etc.) ── */
+  section h2.text-3xl        { font-size: 1.45rem !important; }
+  section p.text-sm          { font-size: 0.8rem !important; }
+  section h3                 { font-size: 0.9rem !important; }
+
+  /* ── Card padding ── */
+  .glow-card.rounded-2xl,
+  .glow-card.rounded-xl      { padding: 1rem !important; }
+
+  /* Certification image area */
+  .glow-card .h-48           { height: 7rem !important; }
+  .glow-card .h-48 i[data-lucide] { width: 36px !important; height: 36px !important; }
+
+  /* ── Skill-list items inside backend / frontend / db sections ── */
+  .skill-section [style*="width:36px"][style*="height:36px"] {
+    width: 30px !important; height: 30px !important;
+  }
+  .skill-section [style*="font-size:.85rem"] { font-size: 0.8rem !important; }
+  .skill-section [style*="font-size:.78rem"] { font-size: 0.72rem !important; }
+
+  /* ── Cog/nav button ── */
+  #cogBtn                    { width: 36px !important; height: 36px !important; top: 14px !important; right: 14px !important; }
+  #cogSvg                    { width: 28px !important; height: 28px !important; }
+  #cogMenu                   { min-width: 160px !important; right: 0 !important; top: 52px !important; }
+  #cogMenu a                 { font-size: 13px !important; padding: 8px 12px !important; }
+
+  /* ── Playground ── */
+  #playground h2.text-3xl    { font-size: 1.4rem !important; }
+  #playground h3             { font-size: 0.88rem !important; }
+  #playground p              { font-size: 0.78rem !important; }
+  #playground .glow-card     { padding: 1rem !important; }
+  #playground .grid          { gap: 16px !important; }
+
+  /* Pong start button */
+  #pongOverlay button        { font-size: 15px !important; padding: 10px 24px !important; }
+
+  /* Typing input */
+  #typingArea                { font-size: 0.8rem !important; padding: 10px !important; }
+  #typingTarget              { font-size: 0.78rem !important; min-height: 50px !important; }
+
+  /* ── Projects section ── */
+  #projects h2.text-3xl      { font-size: 1.4rem !important; }
+  #projects .cards-grid      { gap: 14px !important; }
+
+  /* ── Contact section ── */
+  #contact h2.text-3xl       { font-size: 1.4rem !important; }
+
+  /* ── Frontend demo panel (color swatches etc.) ── */
+  #feDemo                    { min-height: unset !important; gap: 14px !important; }
+  #feDemo [style*="padding:20px"] { padding: 14px 16px !important; }
+  #feDemo [style*="padding:16px"] { padding: 12px 14px !important; }
+
+  /* Color swatch buttons */
+  #feDemo button[style*="width:32px"] { width: 26px !important; height: 26px !important; }
+
+  /* Glow & theme toggle labels */
+  #feGlowLabel, #feThemeLabel, #feCursorLabel { font-size: 0.78rem !important; }
+  .glow-toggle-btn           { width: 52px !important; height: 26px !important; }
+  .glow-toggle-btn .knob     { width: 18px !important; height: 18px !important; font-size: 8px !important; }
+  .glow-toggle-btn.active .knob { transform: translateX(26px) !important; }
+
+  /* Misc padding for full-width sections */
+  .max-w-6xl.mx-auto.px-6   { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Education / cert cards spacing */
+  .space-y-4 > * + *        { margin-top: 12px !important; }
+
+  /* Tag badges in skill pills */
+  .inline-flex.rounded-full  { font-size: 0.68rem !important; padding: 3px 10px !important; }
+
+  /* Reduce heavy background blobs on mobile */
+  [style*="width:700px"]     { width: 90vw !important; height: 200px !important; }
+
+  /* ── Landing page text smaller on mobile ── */
+  #landingUI { gap: 8px !important; width: min(240px, 80vw) !important; }
+  #landingUI > div:first-child { font-size: 0.65rem !important; letter-spacing: .15em !important; }
+  #landingUI div[style*="height:12px"] { height: 8px !important; }
+
+  /* LED sign text smaller on mobile */
+  .led-sign span { font-size: 0.52rem !important; letter-spacing: .02em !important; }
+  .led-sign > div { padding: 7px 10px !important; text-align: center !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+  #ledLeft, #ledRight { gap: 18px !important; }
+
+  /* ── FIX 1: CENTER Backend text on mobile ── */
+  #skillBackend .section-reveal:first-child {
+    text-align: center !important;
+  }
+  #skillBackend .section-reveal:first-child .inline-flex {
+    justify-content: center !important;
+  }
+  /* Keep skill list items centered */
+  #skillBackend .section-reveal:first-child > div[style*="flex-direction:column"] > div {
+    justify-content: center !important;
+  }
+
+  /* ── FIX 2: Backend crack screen → centered on mobile ── */
+  /* Hide the wide edge-bleed crack */
+
+
+
+
+
+}
+</style>
+ </head>
+ <body class="h-full">
+
+  <!-- = LANDING PAGE = -->
+  <div id="landingPage" style="position:fixed;inset:0;z-index:99999;background:#00050f;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:none;">
+   <canvas id="landingCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+   <!-- UI: INITIALIZING + bar only, positioned by JS below cog 0 -->
+   <div id="landingUI" style="position:absolute;left:50%;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:12px;width:min(300px,85vw);top:80%;">
+    <div style="font-size:1rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#38bdf8;letter-spacing:.2em;text-shadow:0 0 24px rgba(56,189,248,0.9),0 0 48px rgba(56,189,248,0.4);">INITIALIZING</div>
+    <div style="width:100%;height:12px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(56,189,248,0.3);overflow:hidden;">
+     <div id="landingBar" style="height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,#0c1f3f,#1d4ed8,#38bdf8,#7dd3fc);box-shadow:0 0 14px rgba(56,189,248,0.9);transition:width 0.15s linear;"></div>
+    </div>
+   </div>
+   <!-- LED signs left -->
+   <!-- LED signs LEFT: light up at 15%, 45%, 75% -->
+   <div id="ledLeft" style="position:absolute;left:0;top:0;bottom:0;width:min(220px,22vw);display:flex;flex-direction:column;justify-content:center;gap:36px;padding-left:16px;z-index:15;pointer-events:none;">
+    <div class="led-sign" id="led0" data-pct="15" style="position:relative;opacity:0.15;transition:opacity 0.5s,box-shadow 0.5s;width:100%;">
+     <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#ef4444;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">✦ Fancy</span>
+     </div>
+     <!-- wire going right toward cogs -->
+     <div style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(90deg,#ef4444,rgba(239,68,68,0.05));box-shadow:0 0 8px #ef4444,0 0 2px #ef4444;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire0"></div>
+    </div>
+    <div class="led-sign" id="led1" data-pct="45" style="position:relative;opacity:0.15;transition:opacity 0.5s,box-shadow 0.5s;width:100%;">
+     <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#eab308;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">✦ Seeing</span>
+     </div>
+     <div style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(90deg,#38bdf8,rgba(56,189,248,0.05));box-shadow:0 0 8px #38bdf8,0 0 2px #38bdf8;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire1"></div>
+    </div>
+    <div class="led-sign" id="led2" data-pct="75" style="position:relative;opacity:0.15;transition:opacity 0.5s,box-shadow 0.5s;width:100%;">
+     <div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#38bdf8;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">✦ You here!</span>
+     </div>
+     <div style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(90deg,#eab308,rgba(234,179,8,0.05));box-shadow:0 0 8px #eab308,0 0 2px #eab308;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire2"></div>
+    </div>
+   </div>
+
+   <!-- LED signs RIGHT: light up at 30%, 60%, 90% -->
+   <div id="ledRight" style="position:absolute;right:0;top:0;bottom:0;width:min(220px,22vw);display:flex;flex-direction:column;justify-content:center;gap:36px;padding-right:16px;align-items:flex-end;z-index:15;pointer-events:none;">
+    <div class="led-sign" id="led3" data-pct="30" style="position:relative;opacity:0.15;transition:opacity 0.5s;width:100%;">
+     <div style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#f97316;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">I'm John! ✦</span>
+     </div>
+     <div style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(270deg,#f97316,rgba(249,115,22,0.05));box-shadow:0 0 8px #f97316,0 0 2px #f97316;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire3"></div>
+    </div>
+    <div class="led-sign" id="led4" data-pct="60" style="position:relative;opacity:0.15;transition:opacity 0.5s;width:100%;">
+     <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#22c55e;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">This is my ✦</span>
+     </div>
+     <div style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(270deg,#22c55e,rgba(34,197,94,0.05));box-shadow:0 0 8px #22c55e,0 0 2px #22c55e;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire4"></div>
+    </div>
+    <div class="led-sign" id="led5" data-pct="90" style="position:relative;opacity:0.15;transition:opacity 0.5s;width:100%;">
+     <div style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.3);border-radius:12px;padding:14px 20px;transition:all 0.5s;">
+      <span style="color:#ec4899;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.04em;text-shadow:none;transition:text-shadow 0.5s;">Portfolio! ✦</span>
+     </div>
+     <div style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);width:70px;height:3px;background:linear-gradient(270deg,#ec4899,rgba(236,72,153,0.05));box-shadow:0 0 8px #ec4899,0 0 2px #ec4899;border-radius:2px;opacity:0.4;transition:opacity 0.5s,box-shadow 0.5s;" id="wire5"></div>
+    </div>
+   </div>
+
+   <div id="landingFlash" style="position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20;"></div>
+  </div>
+
+  <!-- GLOWING COG CURSOR (always visible after landing) -->
+  <div id="cogGlowCursor" style="position:fixed;pointer-events:none;z-index:99990;width:32px;height:32px;transform:translate(-50%,-50%);display:none;top:0;left:0;">
+   <svg width="32" height="32" viewBox="0 0 32 32" style="filter:drop-shadow(0 0 5px #38bdf8)drop-shadow(0 0 12px rgba(56,189,248,0.6));">
+    <g id="cogGlowGear" style="transform-origin:16px 16px;">
+     <circle cx="16" cy="16" r="6.5" fill="none" stroke="#38bdf8" stroke-width="2"/>
+     <circle cx="16" cy="16" r="3" fill="#38bdf8" opacity=".9"/>
+     <g fill="#0ea5e9" stroke="#38bdf8" stroke-width=".8">
+      <rect x="14" y="5.5" width="4" height="5.5" rx="1.2"/>
+      <rect x="14" y="21" width="4" height="5.5" rx="1.2"/>
+      <rect x="5.5" y="14" width="5.5" height="4" rx="1.2"/>
+      <rect x="21" y="14" width="5.5" height="4" rx="1.2"/>
+      <rect x="9" y="8" width="4" height="5.5" rx="1.2" transform="rotate(45 11 10.75)"/>
+      <rect x="19" y="8" width="4" height="5.5" rx="1.2" transform="rotate(-45 21 10.75)"/>
+      <rect x="9" y="18.5" width="4" height="5.5" rx="1.2" transform="rotate(-45 11 21.25)"/>
+      <rect x="19" y="18.5" width="4" height="5.5" rx="1.2" transform="rotate(45 21 21.25)"/>
+     </g>
+    </g>
+   </svg>
+  </div>
+
+  <!-- FIST CURSOR -->
+  <div id="fistCursor">👊</div>
+
+  <div class="app-wrapper grid-bg" id="appWrapper" style="background-color: #020b18; font-family: 'Outfit', sans-serif;">
+   <canvas id="particleCanvas"></canvas>
+
+   <!-- COG CURSOR -->
+   <svg id="cogCursor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path id="cogCursorInner" fill="#38bdf8" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>
+    <path id="cogCursorOuter" fill="#38bdf8" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.37 7.37 0 0 0-1.68-.97l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.58-1.68.97l-2.49-1a.49.49 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98L2.46 14.63a.5.5 0 0 0-.12.64l2 3.46c.13.22.39.3.61.22l2.49-1c.51.39 1.07.72 1.68.97l.38 2.65c.07.27.3.43.49.43h4c.24 0 .44-.16.49-.42l.38-2.65c.61-.25 1.17-.58 1.68-.97l2.49 1a.49.49 0 0 0 .61-.22l2-3.46a.49.49 0 0 0-.12-.64l-2.11-1.65Z"/>
+   </svg>
+
+   <!-- COG MENU -->
+   <div style="position:fixed;top:24px;right:28px;z-index:100;">
+    <!-- Cog button - no background, just the spinning icon -->
+    <button id="cogBtn" onclick="toggleCogMenu()" aria-label="Menu" style="width:44px;height:44px;border:none;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+     <svg id="cogSvg" width="38" height="38" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation:cogSpin 4s linear infinite;filter:drop-shadow(0 0 6px rgba(56,189,248,0.6));">
+      <path fill="#0ea5e9" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>
+      <path fill="#38bdf8" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.37 7.37 0 0 0-1.68-.97l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.58-1.68.97l-2.49-1a.49.49 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98L2.46 14.63a.5.5 0 0 0-.12.64l2 3.46c.13.22.39.3.61.22l2.49-1c.51.39 1.07.72 1.68.97l.38 2.65c.07.27.3.43.49.43h4c.24 0 .44-.16.49-.42l.38-2.65c.61-.25 1.17-.58 1.68-.97l2.49 1a.49.49 0 0 0 .61-.22l2-3.46a.49.49 0 0 0-.12-.64l-2.11-1.65Zm-1.98 1.71-.27.46-1.7-.68-.36.27c-.44.34-.92.6-1.44.79l-.42.16-.33 2.28H11.07l-.33-2.28-.42-.16a5.49 5.49 0 0 1-1.44-.79l-.36-.27-1.7.68-.27-.46 1.44-1.13-.06-.49a5.77 5.77 0 0 1-.06-.87c0-.3.02-.59.06-.87l.06-.49-1.44-1.13.27-.46 1.7.68.36-.27c.44-.34.92-.6 1.44-.79l.42-.16.33-2.28h1.86l.33 2.28.42.16c.52.19 1 .45 1.44.79l.36.27 1.7-.68.27.46-1.44 1.13.06.49c.04.28.06.57.06.87s-.02.59-.06.87l-.06.49 1.44 1.13Z"/>
+     </svg>
+    </button>
+
+    <!-- Dropdown menu -->
+    <div id="cogMenu" style="position:absolute;top:64px;right:0;min-width:180px;background:rgba(240,249,255,0.96);backdrop-filter:blur(16px);border:1px solid rgba(56,189,248,0.25);border-radius:16px;padding:8px;box-shadow:0 8px 32px rgba(56,189,248,0.15);opacity:0;pointer-events:none;transform:scale(0.92) translateY(-8px);transform-origin:top right;transition:opacity 0.25s ease,transform 0.25s cubic-bezier(0.34,1.56,0.64,1);">
+     <a href="#about" onclick="closeCogMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;text-decoration:none;color:#0369a1;font-size:14px;font-weight:500;font-family:'IBM Plex Mono',monospace;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      About
+     </a>
+     <a href="#playground" onclick="closeCogMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;text-decoration:none;color:#0369a1;font-size:14px;font-weight:500;font-family:'IBM Plex Mono',monospace;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Playground
+     </a>
+     <a href="#projects" onclick="closeCogMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;text-decoration:none;color:#0369a1;font-size:14px;font-weight:500;font-family:'IBM Plex Mono',monospace;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      Projects
+     </a>
+     <a href="#contact" onclick="closeCogMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;text-decoration:none;color:#0369a1;font-size:14px;font-weight:500;font-family:'IBM Plex Mono',monospace;transition:background 0.15s;" onmouseover="this.style.background='rgba(56,189,248,0.1)'" onmouseout="this.style.background='transparent'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contact
+     </a>
+    </div>
+   </div>
+
+   <!-- HERO -->
+   <section class="relative z-10" style="min-height:100vh;width:100%;display:flex;align-items:center;justify-content:center;padding-top:60px;">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:400px;background:radial-gradient(ellipse at center,rgba(56,189,248,0.13) 0%,transparent 70%);pointer-events:none;z-index:0;"></div>
+    <div class="section-reveal" style="position:relative;z-index:1;width:100%;max-width:860px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+     <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-6" style="background:rgba(56,189,248,0.12);color:#0284c7;font-family:'IBM Plex Mono',monospace;border:1px solid rgba(56,189,248,0.25);">
+      <span class="w-2 h-2 rounded-full bg-sky-400 pulse-ring"></span> Available for work
+     </div>
+     <h1 class="font-bold mb-4" style="font-size:clamp(2.5rem,6vw,5rem);color:#0f172a;line-height:1.1;" id="heroName">John Paul Rebuyas</h1>
+     <p class="font-light mb-8" style="font-size:clamp(1rem,2vw,1.35rem);color:#64748b;max-width:480px;" id="heroTagline">Full-Stack Developer</p>
+     <p style="font-size:clamp(.85rem,1.2vw,1rem);color:#94a3b8;max-width:520px;line-height:1.75;" id="aboutText">I build scalable web applications with modern technologies. Passionate about clean code, responsive design, and solving complex problems.</p>
+    </div>
+   </section>
+
+   <!-- =
+        SECTION 1 - BACKEND DEVELOPMENT
+        Left: text/description | Right: live-typing code panel
+        = -->
+   <section id="about" class="relative z-10 py-0">
+
+    <!-- BACKEND -->
+    <div class="skill-section" id="skillBackend" style="min-height:100vh;display:flex;align-items:center;padding:100px 0;overflow:visible;position:relative;">
+
+     <!-- Blurred jagged glass shard - always visible, behind everything -->
+     <div style="position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:96%;filter:blur(3px);opacity:0.8;">
+       <div style="position:absolute;inset:0;
+         clip-path:polygon(
+           50% 0%,
+           58% 7%,
+           72% 1%,
+           80% 9%,
+           95% 4%,
+           100% 18%,
+           93% 26%,
+           100% 38%,
+           94% 48%,
+           100% 60%,
+           91% 70%,
+           96% 82%,
+           82% 90%,
+           72% 100%,
+           58% 93%,
+           50% 100%,
+           40% 93%,
+           28% 100%,
+           18% 90%,
+           4%  82%,
+           0%  68%,
+           6%  58%,
+           0%  46%,
+           6%  34%,
+           0%  20%,
+           14% 10%,
+           22% 2%,
+           36% 8%
+         );overflow:hidden;">
+        <div style="position:absolute;inset:0;background:#00050f;"></div>
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.09) 3px,rgba(0,0,0,0.09) 4px);pointer-events:none;z-index:3;"></div>
+        <div style="position:absolute;inset:0;padding:18px 14px;font-family:'IBM Plex Mono',monospace;font-size:.65rem;line-height:1.55;overflow:hidden;z-index:2;">
+         <div id="mShardMain" style="white-space:pre-wrap;word-break:break-all;"></div>
+        </div>
+       </div>
+       <svg id="mCrackGlowSvg" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"
+         style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;">
+        <defs>
+         <filter id="mShardGlow">
+          <feGaussianBlur stdDeviation="0.7" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+         </filter>
+        </defs>
+        <polygon id="mcgEdge1"
+          points="50,0 58,7 72,1 80,9 95,4 100,18 93,26 100,38 94,48 100,60 91,70 96,82 82,90 72,100 58,93 50,100 40,93 28,100 18,90 4,82 0,68 6,58 0,46 6,34 0,20 14,10 22,2 36,8"
+          fill="none" stroke="#38bdf8" stroke-width="0.6" opacity="0.85" filter="url(#mShardGlow)"/>
+       </svg>
+      </div>
+     </div>
+
+     <!-- Centered content - text only, no right column -->
+     <div class="max-w-2xl mx-auto px-6 w-full" style="position:relative;z-index:1;text-align:center;">
+      <div class="section-reveal">
+       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6" style="background:rgba(56,189,248,0.12);color:#0284c7;font-family:'IBM Plex Mono',monospace;border:1px solid rgba(56,189,248,0.25);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Backend Development
+       </div>
+       <h2 style="font-size:2.6rem;font-weight:700;color:#0f172a;line-height:1.15;margin-bottom:20px;">Server-side<br><span class="accent-gradient-text" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Engineering</span></h2>
+       <p style="color:#475569;font-size:1rem;line-height:1.75;margin-bottom:28px;">Building robust, scalable APIs and microservices with Node.js, Express, and Python. I architect systems that handle millions of requests with clean separation of concerns and rock-solid error handling.</p>
+       <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+        <div style="display:flex;align-items:center;gap:12px;">
+         <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+         </div>
+         <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">RESTful & GraphQL APIs</div><div style="font-size:.78rem;color:#94a3b8;">Express · FastAPI · Apollo</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+         <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+         </div>
+         <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">Authentication & Security</div><div style="font-size:.78rem;color:#94a3b8;">JWT · OAuth 2.0 · bcrypt</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+         <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+         </div>
+         <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">Microservices & Docker</div><div style="font-size:.78rem;color:#94a3b8;">Docker · Kubernetes · CI/CD</div></div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+
+    <!-- FRONTEND -->
+    <!-- FRONTEND BORING OVERLAY -->
+    <div id="frontendOverlay" style="position:fixed;inset:0;z-index:9000;pointer-events:none;opacity:0;transition:opacity 0.4s;">
+     <!-- blurred background -->
+     <div style="position:absolute;inset:0;backdrop-filter:blur(2px);background:rgba(0,5,15,0.45);"></div>
+     <!-- punch box -->
+     <div id="frontendPunchBox" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(5,15,30,0.92);border:1px solid rgba(56,189,248,0.3);border-radius:20px;padding:36px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 60px rgba(56,189,248,0.15);backdrop-filter:blur(10px);">
+      <p style="font-size:1.15rem;font-weight:600;color:#e2e8f0;line-height:1.6;margin-bottom:24px;">Boring right?<br><span style="color:#38bdf8;">Let's dive deeper into the system!</span></p>
+      <button id="frontendPunchBtn" onclick="smashFrontendBox()" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);border:none;border-radius:12px;padding:12px 28px;font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 0 20px rgba(56,189,248,0.4);"
+        onmouseover="this.style.transform='scale(1.06)';this.style.boxShadow='0 0 35px rgba(56,189,248,0.7)'"
+        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 0 20px rgba(56,189,248,0.4)'">
+       <span id="punchIconSvg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg></span>
+       PUNCH IT
+      </button>
+     </div>
+     <!-- fragments container -->
+     <div id="frontendFragments" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;"></div>
+    </div>
+
+    <div class="skill-section" id="skillFrontend" style="min-height:100vh;display:flex;align-items:center;padding:80px 0;border-top:1px solid rgba(56,189,248,0.08);">
+
+     <div class="max-w-2xl mx-auto px-6 w-full" style="text-align:center;position:relative;z-index:1;">
+      <div class="section-reveal">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6" style="background:rgba(56,189,248,0.12);color:#0284c7;font-family:'IBM Plex Mono',monospace;border:1px solid rgba(56,189,248,0.25);">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+         Frontend Development
+        </div>
+        <h2 style="font-size:2.6rem;font-weight:700;line-height:1.15;margin-bottom:20px;">
+         <!-- Each letter of "Pixel" is a color-change button -->
+         <span style="display:inline-flex;align-items:baseline;gap:1px;">
+          <button onclick="feSiteColor('#ef4444','#dc2626')" data-no-recolor title="Red - P"
+            style="font-size:inherit;font-weight:900;background:none;border:none;cursor:pointer;padding:0;color:#ef4444;text-shadow:0 0 16px rgba(239,68,68,0.8),0 0 36px rgba(239,68,68,0.4);transition:transform 0.15s,text-shadow 0.15s;font-family:inherit;line-height:1;"
+            onmouseover="this.style.transform='scale(1.18)';this.style.textShadow='0 0 28px rgba(239,68,68,1),0 0 55px rgba(239,68,68,0.6)'"
+            onmouseout="this.style.transform='scale(1)';this.style.textShadow='0 0 16px rgba(239,68,68,0.8),0 0 36px rgba(239,68,68,0.4)'">P</button><button onclick="feSiteColor('#ec4899','#db2777')" data-no-recolor title="Pink - i"
+            style="font-size:inherit;font-weight:900;background:none;border:none;cursor:pointer;padding:0;color:#ec4899;text-shadow:0 0 16px rgba(236,72,153,0.8),0 0 36px rgba(236,72,153,0.4);transition:transform 0.15s,text-shadow 0.15s;font-family:inherit;line-height:1;"
+            onmouseover="this.style.transform='scale(1.18)';this.style.textShadow='0 0 28px rgba(236,72,153,1),0 0 55px rgba(236,72,153,0.6)'"
+            onmouseout="this.style.transform='scale(1)';this.style.textShadow='0 0 16px rgba(236,72,153,0.8),0 0 36px rgba(236,72,153,0.4)'">i</button><button onclick="feSiteColor('#f97316','#ea580c')" data-no-recolor title="Orange - x"
+            style="font-size:inherit;font-weight:900;background:none;border:none;cursor:pointer;padding:0;color:#f97316;text-shadow:0 0 16px rgba(249,115,22,0.8),0 0 36px rgba(249,115,22,0.4);transition:transform 0.15s,text-shadow 0.15s;font-family:inherit;line-height:1;"
+            onmouseover="this.style.transform='scale(1.18)';this.style.textShadow='0 0 28px rgba(249,115,22,1),0 0 55px rgba(249,115,22,0.6)'"
+            onmouseout="this.style.transform='scale(1)';this.style.textShadow='0 0 16px rgba(249,115,22,0.8),0 0 36px rgba(249,115,22,0.4)'">x</button><button onclick="feSiteColor('#38bdf8','#0ea5e9')" data-no-recolor title="Blue - e"
+            style="font-size:inherit;font-weight:900;background:none;border:none;cursor:pointer;padding:0;color:#38bdf8;text-shadow:0 0 16px rgba(56,189,248,0.8),0 0 36px rgba(56,189,248,0.4);transition:transform 0.15s,text-shadow 0.15s;font-family:inherit;line-height:1;"
+            onmouseover="this.style.transform='scale(1.18)';this.style.textShadow='0 0 28px rgba(56,189,248,1),0 0 55px rgba(56,189,248,0.6)'"
+            onmouseout="this.style.transform='scale(1)';this.style.textShadow='0 0 16px rgba(56,189,248,0.8),0 0 36px rgba(56,189,248,0.4)'">e</button><button onclick="feSiteColor('#22c55e','#16a34a')" data-no-recolor title="Green - l"
+            style="font-size:inherit;font-weight:900;background:none;border:none;cursor:pointer;padding:0;color:#22c55e;text-shadow:0 0 16px rgba(34,197,94,0.8),0 0 36px rgba(34,197,94,0.4);transition:transform 0.15s,text-shadow 0.15s;font-family:inherit;line-height:1;"
+            onmouseover="this.style.transform='scale(1.18)';this.style.textShadow='0 0 28px rgba(34,197,94,1),0 0 55px rgba(34,197,94,0.6)'"
+            onmouseout="this.style.transform='scale(1)';this.style.textShadow='0 0 16px rgba(34,197,94,0.8),0 0 36px rgba(34,197,94,0.4)'">l</button>
+         </span>-perfect<br>
+         <span class="accent-gradient-text" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Interfaces</span>
+        </h2>
+        <p style="color:#475569;font-size:1rem;line-height:1.75;margin-bottom:28px;">Crafting responsive, accessible UIs with React and Vue.js. I turn designs into living, breathing experiences - from fluid animations to interactive components that delight users on every device.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+         <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">React & Vue.js</div><div style="font-size:.78rem;color:#94a3b8;">Hooks · Composition API · Pinia</div></div>
+         </div>
+         <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">CSS & Animations</div><div style="font-size:.78rem;color:#94a3b8;">Tailwind · Framer Motion · GSAP</div></div>
+         </div>
+         <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          </div>
+          <div><div style="font-size:.85rem;font-weight:600;color:#1e293b;">Performance & A11y</div><div style="font-size:.78rem;color:#94a3b8;">Lighthouse · WCAG · Core Web Vitals</div></div>
+         </div>
+        </div>
+      </div>
+     </div>
+    </div>
+
+    <!-- DATABASE DESIGN -->
+    <div class="skill-section" id="skillDB" style="min-height:100vh;display:flex;align-items:center;padding:80px 0;border-top:1px solid rgba(56,189,248,0.08);">
+     <div class="max-w-2xl mx-auto px-6 w-full" style="text-align:center;">
+      <div class="section-reveal visible">
+       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-8" style="background:rgba(56,189,248,0.12);color:#0284c7;font-family:'IBM Plex Mono',monospace;border:1px solid rgba(56,189,248,0.25);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        Database Design
+       </div>
+       <h2 id="dbHeading" data-no-recolor style="font-weight:700;line-height:1.15;margin-bottom:20px;">Data flows by design</h2>
+       <p id="dbPara" data-no-recolor style="line-height:1.8;margin-bottom:36px;max-width:600px;margin-left:auto;margin-right:auto;">Architecting relational and document databases that scale. From ER diagrams to query optimization, I design schemas that keep data consistent, queries fast, and systems resilient under load.</p>
+       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:700px;margin:0 auto;">
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:16px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+         <div style="width:44px;height:44px;border-radius:12px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+         </div>
+         <div id="dbItem1" data-no-recolor style="font-weight:700;font-size:.95rem;">Relational</div>
+         <div style="font-size:.75rem;color:#64748b;">PostgreSQL · MySQL · SQLite</div>
+        </div>
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:16px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+         <div style="width:44px;height:44px;border-radius:12px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+         </div>
+         <div id="dbItem2" data-no-recolor style="font-weight:700;font-size:.95rem;">NoSQL</div>
+         <div style="font-size:.75rem;color:#64748b;">MongoDB · Redis · DynamoDB</div>
+        </div>
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);border-radius:16px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+         <div style="width:44px;height:44px;border-radius:12px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+         </div>
+         <div id="dbItem3" data-no-recolor style="font-weight:700;font-size:.95rem;">Optimization</div>
+         <div style="font-size:.75rem;color:#64748b;">Indexing · Plans · Caching</div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+
+   </section>
+
+   <!-- EDUCATION -->
+   <section class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+    <div class="section-reveal">
+     <div class="flex items-center gap-3 mb-8">
+      <i data-lucide="book-open" style="width:24px;height:24px;color:#0284c7;"></i>
+      <h2 class="text-3xl font-bold" style="color:#0f172a;">Education</h2>
+     </div>
+     <div class="space-y-4">
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <h3 class="font-semibold text-lg" style="color:#1e293b;">Bachelor of Science in Computer Science</h3>
+       <p class="text-sm mt-1" style="color:#64748b;">University Name • 2018 - 2022</p>
+       <p class="text-sm mt-3" style="color:#94a3b8;">GPA: 3.8/4.0 • Dean's List • Relevant Coursework: Web Development, Data Structures, Software Engineering</p>
+      </div>
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <h3 class="font-semibold text-lg" style="color:#1e293b;">Senior High School</h3>
+       <p class="text-sm mt-1" style="color:#64748b;">School Name • 2016 - 2018</p>
+       <p class="text-sm mt-3" style="color:#94a3b8;">Science Track • Average: 95/100 • Participated in Mathematics Olympiad</p>
+      </div>
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <h3 class="font-semibold text-lg" style="color:#1e293b;">High School</h3>
+       <p class="text-sm mt-1" style="color:#64748b;">School Name • 2012 - 2016</p>
+       <p class="text-sm mt-3" style="color:#94a3b8;">General Education • Average: 92/100 • Active in Technology Club</p>
+      </div>
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <h3 class="font-semibold text-lg" style="color:#1e293b;">Elementary School</h3>
+       <p class="text-sm mt-1" style="color:#64748b;">School Name • 2006 - 2012</p>
+       <p class="text-sm mt-3" style="color:#94a3b8;">Primary Education • Average: 90/100 • Scholar Award Recipient</p>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <!-- TECHNICAL SKILLS -->
+   <section class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+    <div class="section-reveal">
+     <div class="flex items-center gap-3 mb-10">
+      <i data-lucide="star" style="width:28px;height:28px;color:#0284c7;"></i>
+      <h2 class="text-3xl font-bold" style="color:#0f172a;">Technical Skills</h2>
+     </div>
+     <div class="cards-grid">
+      <div class="glow-card rounded-2xl p-6">
+       <h3 class="font-semibold mb-3" style="color:#1e293b;">Languages</h3>
+       <div class="flex flex-wrap gap-2">
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">JavaScript</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Python</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">TypeScript</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">SQL</span>
+       </div>
+      </div>
+      <div class="glow-card rounded-2xl p-6">
+       <h3 class="font-semibold mb-3" style="color:#1e293b;">Frontend Frameworks</h3>
+       <div class="flex flex-wrap gap-2">
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">React</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Vue.js</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Tailwind CSS</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Next.js</span>
+       </div>
+      </div>
+      <div class="glow-card rounded-2xl p-6">
+       <h3 class="font-semibold mb-3" style="color:#1e293b;">Backend &amp; Databases</h3>
+       <div class="flex flex-wrap gap-2">
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Node.js</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Express</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">PostgreSQL</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">MongoDB</span>
+       </div>
+      </div>
+      <div class="glow-card rounded-2xl p-6">
+       <h3 class="font-semibold mb-3" style="color:#1e293b;">Tools &amp; Platforms</h3>
+       <div class="flex flex-wrap gap-2">
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Git</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Docker</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">AWS</span>
+        <span class="text-xs px-3 py-1.5 rounded-full font-medium" style="background:rgba(56,189,248,0.11);color:#0284c7;">Figma</span>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <!-- CERTIFICATIONS -->
+   <section class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+    <div class="section-reveal">
+     <div class="flex items-center gap-3 mb-10">
+      <i data-lucide="award" style="width:28px;height:28px;color:#0284c7;"></i>
+      <h2 class="text-3xl font-bold" style="color:#0f172a;">Certifications</h2>
+     </div>
+     <div class="cards-grid">
+      <div class="glow-card rounded-xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openCertModal(0)">
+       <div class="h-48 flex items-center justify-center" style="background:linear-gradient(135deg,#FF9900,#FF6600);">
+        <i data-lucide="cloud" style="width:56px;height:56px;color:#fff;opacity:0.8;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold" style="color:#1e293b;">AWS Solutions Architect</h3>
+        <p class="text-xs mt-1" style="color:#64748b;">2023</p>
+        <div class="flex items-center gap-1 mt-2">
+         <i data-lucide="check-circle-2" style="width:14px;height:14px;color:#22c55e;"></i><span class="text-xs" style="color:#22c55e;">Verified</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card rounded-xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openCertModal(1)">
+       <div class="h-48 flex items-center justify-center" style="background:linear-gradient(135deg,#4285F4,#34A853);">
+        <i data-lucide="database" style="width:56px;height:56px;color:#fff;opacity:0.8;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold" style="color:#1e293b;">Google Data Engineer</h3>
+        <p class="text-xs mt-1" style="color:#64748b;">2023</p>
+        <div class="flex items-center gap-1 mt-2">
+         <i data-lucide="check-circle-2" style="width:14px;height:14px;color:#22c55e;"></i><span class="text-xs" style="color:#22c55e;">Verified</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card rounded-xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openCertModal(2)">
+       <div class="h-48 flex items-center justify-center" style="background:linear-gradient(135deg,#61DAFB,#282C34);">
+        <i data-lucide="layers" style="width:56px;height:56px;color:#61DAFB;opacity:0.9;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold" style="color:#1e293b;">React Patterns</h3>
+        <p class="text-xs mt-1" style="color:#64748b;">2022</p>
+        <div class="flex items-center gap-1 mt-2">
+         <i data-lucide="check-circle-2" style="width:14px;height:14px;color:#22c55e;"></i><span class="text-xs" style="color:#22c55e;">Verified</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card rounded-xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openCertModal(3)">
+       <div class="h-48 flex items-center justify-center" style="background:linear-gradient(135deg,#1F70B8,#0066CC);">
+        <i data-lucide="code" style="width:56px;height:56px;color:#fff;opacity:0.8;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold" style="color:#1e293b;">Full Stack JavaScript</h3>
+        <p class="text-xs mt-1" style="color:#64748b;">2022</p>
+        <div class="flex items-center gap-1 mt-2">
+         <i data-lucide="check-circle-2" style="width:14px;height:14px;color:#22c55e;"></i><span class="text-xs" style="color:#22c55e;">Verified</span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <!-- PLAYGROUND -->
+   <section id="playground" class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+    <div class="section-reveal">
+     <div class="flex items-center gap-3 mb-2">
+      <i data-lucide="gamepad-2" style="width:24px;height:24px;color:#0284c7;"></i>
+      <h2 class="text-3xl font-bold" style="color:#0f172a;">Interactive Playground</h2>
+     </div>
+     <p class="text-sm mb-10" style="color:#94a3b8;">Click, type, and play - everything here is real-time.</p>
+     <div class="cards-grid">
+
+      <!-- PHYSICS SIM -->
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="atom" style="width:18px;height:18px;color:#0284c7;"></i>
+        <h3 class="font-semibold" style="color:#1e293b;">Physics Ball Pit</h3>
+       </div>
+       <p class="text-xs mb-3" style="color:#94a3b8;">Click to spawn balls. They bounce with gravity!</p>
+       <canvas id="physicsSim" width="500" height="320" style="width:100%;background:#0f172a;"></canvas>
+       <div class="flex gap-2 mt-3">
+        <button onclick="clearBalls()" class="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-80" style="background:rgba(56,189,248,0.11);color:#0284c7;">Clear All</button>
+        <button onclick="addGravityBurst()" class="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-80" style="background:rgba(56,189,248,0.11);color:#0284c7;">Gravity Burst</button>
+       </div>
+      </div>
+
+      <!-- PONG -->
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="monitor" style="width:18px;height:18px;color:#0284c7;"></i>
+        <h3 class="font-semibold" style="color:#1e293b;">Pong</h3>
+       </div>
+       <p class="text-xs mb-3" style="color:#94a3b8;">Move mouse over the canvas to control the left paddle.</p>
+       <div style="position:relative;">
+        <canvas id="pongCanvas" width="500" height="320" style="width:100%;background:#0f172a;"></canvas>
+        <!-- FIX 1: was "items-center:center" (invalid CSS) - fixed to "align-items: center" -->
+        <div id="pongOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(15,23,42,0.6);backdrop-filter:blur(3px);border-radius:12px;">
+         <button onclick="startPongGame()" style="background:linear-gradient(135deg,#60a5fa,#3b82f6);border:none;cursor:pointer;padding:12px 32px;border-radius:12px;color:#fff;font-size:18px;font-weight:500;margin-bottom:16px;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Start Game</button>
+         <span style="color:#60a5fa;font-size:14px;font-family:'IBM Plex Mono',monospace;font-weight:600;" id="pongFinalScore"></span>
+        </div>
+       </div>
+       <div class="flex items-center gap-4 mt-3">
+        <span class="text-xs font-mono" style="color:#64748b;">You: <strong id="pScore" style="color:#60a5fa;">0</strong></span>
+        <span class="text-xs font-mono" style="color:#64748b;">CPU: <strong id="cScore" style="color:#f87171;">0</strong></span>
+        <button onclick="resetPongGame()" class="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-80 ml-auto" style="background:rgba(56,189,248,0.11);color:#0284c7;">Try Again</button>
+       </div>
+      </div>
+
+      <!-- TYPING SPEED -->
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="keyboard" style="width:18px;height:18px;color:#0284c7;"></i>
+        <h3 class="font-semibold" style="color:#1e293b;">Typing Speed</h3>
+       </div>
+       <p class="text-xs mb-3" style="color:#94a3b8;">Type the text below as fast as you can.</p>
+       <div id="typingTarget" class="text-sm p-4 rounded-xl mb-3 font-mono leading-relaxed" style="background:#0f172a;color:#60a5fa;min-height:60px;"></div>
+       <input id="typingArea" class="w-full text-sm p-3 rounded-xl border font-mono" style="background:#fff;border-color:#e2e8f0;color:#1e293b;" placeholder="Start typing here..." oninput="checkTyping()">
+       <div class="flex items-center gap-4 mt-3">
+        <span class="text-xs font-mono" style="color:#64748b;">WPM: <strong id="wpmDisplay" style="color:#60a5fa;">0</strong></span>
+        <span class="text-xs font-mono" style="color:#64748b;">Accuracy: <strong id="accDisplay" style="color:#22c55e;">100%</strong></span>
+        <button onclick="initTyping()" class="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-80 ml-auto" style="background:rgba(56,189,248,0.11);color:#0284c7;">New Text</button>
+       </div>
+      </div>
+
+      <!-- NEON DRAWING BOARD -->
+      <div class="glow-card blur-card rounded-2xl p-6">
+       <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="pen-tool" style="width:18px;height:18px;color:#0284c7;"></i>
+        <h3 class="font-semibold" style="color:#1e293b;">Neon Drawing</h3>
+       </div>
+       <p class="text-xs mb-3" style="color:#94a3b8;">Click and drag to draw with neon glow.</p>
+       <canvas id="neonCanvas" width="500" height="320" style="width:100%;background:#0f172a;cursor:crosshair;"></canvas>
+       <div class="flex gap-2 mt-3">
+        <button onclick="clearNeon()" class="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-80" style="background:rgba(56,189,248,0.11);color:#0284c7;">Clear Canvas</button>
+       </div>
+      </div>
+
+     </div>
+    </div>
+   </section>
+
+   <!-- PROJECTS -->
+   <section id="projects" class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+    <div class="section-reveal">
+     <div class="flex items-center gap-3 mb-2">
+      <i data-lucide="folder-open" style="width:24px;height:24px;color:#0284c7;"></i>
+      <h2 class="text-3xl font-bold" style="color:#0f172a;">Projects</h2>
+     </div>
+     <p class="text-sm mb-10" style="color:#94a3b8;">Selected works and experiments.</p>
+     <div class="cards-grid">
+      <div class="glow-card blur-card rounded-2xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openProjectModal(0)">
+       <div class="h-64 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);">
+        <i data-lucide="globe" style="width:48px;height:48px;color:#60a5fa;opacity:0.6;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold mb-1" style="color:#1e293b;">WebGL Terrain</h3>
+        <p class="text-xs" style="color:#94a3b8;">Procedural terrain generation with real-time lighting.</p>
+        <div class="flex gap-2 mt-3">
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">Three.js</span>
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">GLSL</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card blur-card rounded-2xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openProjectModal(1)">
+       <div class="h-64 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);">
+        <i data-lucide="bar-chart-3" style="width:48px;height:48px;color:#60a5fa;opacity:0.6;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold mb-1" style="color:#1e293b;">Data Dashboard</h3>
+        <p class="text-xs" style="color:#94a3b8;">Real-time analytics with interactive charts and filters.</p>
+        <div class="flex gap-2 mt-3">
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">React</span>
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">D3</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card blur-card rounded-2xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openProjectModal(2)">
+       <div class="h-64 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);">
+        <i data-lucide="zap" style="width:48px;height:48px;color:#60a5fa;opacity:0.6;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold mb-1" style="color:#1e293b;">Particle Engine</h3>
+        <p class="text-xs" style="color:#94a3b8;">GPU-accelerated particle system with physics interactions.</p>
+        <div class="flex gap-2 mt-3">
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">Canvas</span>
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">WebGL</span>
+        </div>
+       </div>
+      </div>
+      <div class="glow-card blur-card rounded-2xl overflow-hidden cursor-pointer transition hover:shadow-lg" onclick="openProjectModal(3)">
+       <div class="h-64 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);">
+        <i data-lucide="layers" style="width:48px;height:48px;color:#60a5fa;opacity:0.6;"></i>
+       </div>
+       <div class="p-5">
+        <h3 class="font-semibold mb-1" style="color:#1e293b;">Design System</h3>
+        <p class="text-xs" style="color:#94a3b8;">Comprehensive component library with documentation and examples.</p>
+        <div class="flex gap-2 mt-3">
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">Vue.js</span>
+         <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(56,189,248,0.11);color:#0284c7;">Storybook</span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+
+   <!-- CONTACT -->
+   <section id="contact" class="relative z-10 max-w-6xl mx-auto px-6 py-16 pb-32">
+    <div class="section-reveal">
+     <div class="glow-card blur-card rounded-2xl p-8 max-w-lg mx-auto text-center">
+      <h2 class="text-2xl font-bold mb-2" style="color:#0f172a;">Let's Connect</h2>
+      <p class="text-sm mb-6" style="color:#94a3b8;">Interested in working together? Say hello.</p>
+      <div class="flex justify-center gap-4">
+       <a href="#contact" class="w-10 h-10 rounded-xl flex items-center justify-center transition hover:opacity-80" style="background:rgba(56,189,248,0.1);">
+        <i data-lucide="mail" style="width:18px;height:18px;color:#0284c7;"></i>
+       </a>
+       <a href="#contact" class="w-10 h-10 rounded-xl flex items-center justify-center transition hover:opacity-80" style="background:rgba(56,189,248,0.1);">
+        <i data-lucide="github" style="width:18px;height:18px;color:#0284c7;"></i>
+       </a>
+       <a href="#contact" class="w-10 h-10 rounded-xl flex items-center justify-center transition hover:opacity-80" style="background:rgba(56,189,248,0.1);">
+        <i data-lucide="twitter" style="width:18px;height:18px;color:#0284c7;"></i>
+       </a>
+       <a href="#contact" class="w-10 h-10 rounded-xl flex items-center justify-center transition hover:opacity-80" style="background:rgba(56,189,248,0.1);">
+        <i data-lucide="linkedin" style="width:18px;height:18px;color:#0284c7;"></i>
+       </a>
+      </div>
+     </div>
+    </div>
+   </section>
+  </div>
+
+  <!-- PROJECT MODAL -->
+  <div id="projectModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(5,12,30,0.85);backdrop-filter:blur(8px);">
+   <div class="rounded-2xl max-w-2xl w-full p-8 max-h-screen overflow-y-auto" style="background:#0d1b2e;border:1px solid rgba(56,189,248,0.25);box-shadow:0 0 60px rgba(56,189,248,0.12);">
+    <div class="flex items-start justify-between mb-4">
+     <h2 id="modalTitle" class="text-2xl font-bold" style="color:#e2e8f0;"></h2>
+     <button onclick="closeProjectModal()" style="background:none;border:none;cursor:pointer;color:#64748b;transition:color 0.2s;" onmouseover="this.style.color='#e2e8f0'" onmouseout="this.style.color='#64748b'">
+      <i data-lucide="x" style="width:24px;height:24px;"></i>
+     </button>
+    </div>
+    <p id="modalDescription" class="text-sm mb-6" style="color:#94a3b8;line-height:1.7;"></p>
+    <div class="mb-6">
+     <h3 class="font-semibold mb-3" style="color:#64748b;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">Technologies</h3>
+     <div id="modalTechs" class="flex flex-wrap gap-2"></div>
+    </div>
+    <p id="modalDetails" class="text-sm leading-relaxed" style="color:#94a3b8;"></p>
+   </div>
+  </div>
+
+  <!-- CERTIFICATION MODAL -->
+  <div id="certModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(5,12,30,0.85);backdrop-filter:blur(8px);">
+   <div class="rounded-2xl max-w-md w-full p-8" style="background:#0d1b2e;border:1px solid rgba(56,189,248,0.25);box-shadow:0 0 60px rgba(56,189,248,0.12);">
+    <div class="flex items-start justify-between mb-6">
+     <h2 id="certTitle" class="text-2xl font-bold" style="color:#e2e8f0;"></h2>
+     <button onclick="closeCertModal()" style="background:none;border:none;cursor:pointer;color:#64748b;transition:color 0.2s;" onmouseover="this.style.color='#e2e8f0'" onmouseout="this.style.color='#64748b'">
+      <i data-lucide="x" style="width:24px;height:24px;"></i>
+     </button>
+    </div>
+    <div id="certImageContainer" class="rounded-xl mb-6" style="height:220px;overflow:hidden;"></div>
+    <p id="certYear" class="text-sm mb-3" style="color:#64748b;font-family:'IBM Plex Mono',monospace;"></p>
+    <div class="flex items-center gap-2">
+     <i data-lucide="check-circle-2" style="width:18px;height:18px;color:#22c55e;"></i>
+     <span class="text-sm font-medium" style="color:#22c55e;">Verified Credential</span>
+    </div>
+   </div>
+  </div>
+
+  <script>
+// ========== FLOATING PARTICLES ==========
+(function() {
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 50; i++) {
+    particles.push({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      bvx: (Math.random() - 0.5) * 0.3, bvy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 2 + 1, a: Math.random() * 0.3 + 0.05
+    });
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const glowOn = window._particleSpeedMult && window._particleSpeedMult > 1;
+    const spd = glowOn ? window._particleSpeedMult : 1;
+    const accentRgb = window._accentRgb || '56,189,248';
+    particles.forEach(p => {
+      p.x += p.bvx * spd; p.y += p.bvy * spd;
+      if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+      const alpha = glowOn ? Math.min(1, p.a * 3) : p.a;
+      const radius = glowOn ? p.r * 1.8 : p.r;
+      if (glowOn) {
+        ctx.shadowColor = `rgba(${accentRgb},0.9)`;
+        ctx.shadowBlur = 12;
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${accentRgb},${alpha})`; ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    const connectDist = glowOn ? 150 : 120;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < connectDist) {
+          const lineAlpha = glowOn ? 0.25 * (1 - dist / connectDist) : 0.09 * (1 - dist / connectDist);
+          if (glowOn) { ctx.shadowColor = `rgba(${accentRgb},0.4)`; ctx.shadowBlur = 6; }
+          ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(${accentRgb},${lineAlpha})`;
+          ctx.lineWidth = glowOn ? 1.2 : 0.8;
+          ctx.stroke();
+          ctx.shadowBlur = 0; ctx.lineWidth = 1;
+        }
+      }
+    }
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+})();
+
+// ========== PHYSICS BALL PIT ==========
+const physCanvas = document.getElementById('physicsSim');
+const pCtx = physCanvas.getContext('2d');
+let balls = [];
+const gravity = 0.25;
+const friction = 0.99;
+const isMobileBrowser = window.innerWidth <= 640;
+const bounce = 0.75;
+
+function spawnBall(x, y) {
+  const scale = physCanvas.width / physCanvas.clientWidth;
+  balls.push({
+    x: x * scale, y: y * scale,
+    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 2,
+    r: Math.random() * 12 + 6,
+    color: `hsl(${210 + Math.random() * 30}, ${60 + Math.random() * 30}%, ${55 + Math.random() * 20}%)`
+  });
+  if (balls.length > 80) balls.shift();
+}
+
+physCanvas.addEventListener('click', (e) => {
+  const rect = physCanvas.getBoundingClientRect();
+  spawnBall(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+function clearBalls() { balls = []; }
+function addGravityBurst() { balls.forEach(b => { b.vy = -8 - Math.random() * 4; b.vx += (Math.random() - 0.5) * 6; }); }
+
+function simPhysics() {
+  pCtx.clearRect(0, 0, physCanvas.width, physCanvas.height);
+  balls.forEach(b => {
+    b.vy += gravity; b.vx *= friction; b.vy *= friction;
+    b.x += b.vx; b.y += b.vy;
+    if (b.x - b.r < 0) { b.x = b.r; b.vx *= -bounce; }
+    if (b.x + b.r > physCanvas.width) { b.x = physCanvas.width - b.r; b.vx *= -bounce; }
+    if (b.y + b.r > physCanvas.height) { b.y = physCanvas.height - b.r; b.vy *= -bounce; }
+    if (b.y - b.r < 0) { b.y = b.r; b.vy *= -bounce; }
+    pCtx.beginPath(); pCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    pCtx.fillStyle = b.color; pCtx.fill();
+    pCtx.beginPath(); pCtx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2);
+    pCtx.fillStyle = 'rgba(255,255,255,0.3)'; pCtx.fill();
+  });
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i + 1; j < balls.length; j++) {
+      const dx = balls[j].x - balls[i].x;
+      const dy = balls[j].y - balls[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = balls[i].r + balls[j].r;
+      if (dist < minDist) {
+        const nx = dx / dist; const ny = dy / dist;
+        const overlap = (minDist - dist) / 2;
+        balls[i].x -= nx * overlap; balls[i].y -= ny * overlap;
+        balls[j].x += nx * overlap; balls[j].y += ny * overlap;
+        const dvx = balls[i].vx - balls[j].vx;
+        const dvy = balls[i].vy - balls[j].vy;
+        const dvn = dvx * nx + dvy * ny;
+        balls[i].vx -= dvn * nx * bounce; balls[i].vy -= dvn * ny * bounce;
+        balls[j].vx += dvn * nx * bounce; balls[j].vy += dvn * ny * bounce;
+      }
+    }
+  }
+  requestAnimationFrame(simPhysics);
+}
+simPhysics();
+
+// ========== PONG ==========
+const pongCanvas = document.getElementById('pongCanvas');
+const poCtx = pongCanvas.getContext('2d');
+let pong = {
+  ball: { x: 250, y: 160, vx: 3, vy: 2, r: 6 },
+  p1: { y: 130, h: 60 }, p2: { y: 130, h: 60 },
+  score: [0, 0], pw: 8,
+  gameActive: false
+};
+
+pongCanvas.addEventListener('mousemove', (e) => {
+  const rect = pongCanvas.getBoundingClientRect();
+  const scale = pongCanvas.height / rect.height;
+  pong.p1.y = (e.clientY - rect.top) * scale - pong.p1.h / 2;
+});
+
+function runPong() {
+  if (!pong.gameActive) { requestAnimationFrame(runPong); return; }
+  const b = pong.ball;
+  const w = pongCanvas.width; const h = pongCanvas.height;
+  const target = b.y - pong.p2.h / 2;
+  pong.p2.y += (target - pong.p2.y) * 0.06;
+  b.x += b.vx; b.y += b.vy;
+  if (b.y - b.r < 0 || b.y + b.r > h) b.vy *= -1;
+  if (b.x - b.r < 20 + pong.pw && b.y > pong.p1.y && b.y < pong.p1.y + pong.p1.h) {
+    b.vx = Math.abs(b.vx) * 1.03; b.x = 20 + pong.pw + b.r;
+    b.vy += (b.y - (pong.p1.y + pong.p1.h / 2)) * 0.1;
+  }
+  if (b.x + b.r > w - 20 - pong.pw && b.y > pong.p2.y && b.y < pong.p2.y + pong.p2.h) {
+    b.vx = -Math.abs(b.vx) * 1.03; b.x = w - 20 - pong.pw - b.r;
+    b.vy += (b.y - (pong.p2.y + pong.p2.h / 2)) * 0.1;
+  }
+  if (b.x < 0) { pong.score[1]++; resetPongBall(); }
+  if (b.x > w) { pong.score[0]++; resetPongBall(); }
+  const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+  if (speed > 8) { b.vx *= 8 / speed; b.vy *= 8 / speed; }
+  document.getElementById('pScore').textContent = pong.score[0];
+  document.getElementById('cScore').textContent = pong.score[1];
+  poCtx.clearRect(0, 0, w, h);
+  poCtx.setLineDash([4, 8]); poCtx.strokeStyle = 'rgba(96,165,250,0.15)';
+  poCtx.beginPath(); poCtx.moveTo(w / 2, 0); poCtx.lineTo(w / 2, h); poCtx.stroke();
+  poCtx.setLineDash([]);
+  poCtx.fillStyle = '#38bdf8';
+  poCtx.fillRect(20, pong.p1.y, pong.pw, pong.p1.h);
+  poCtx.fillStyle = '#f87171';
+  poCtx.fillRect(w - 20 - pong.pw, pong.p2.y, pong.pw, pong.p2.h);
+  poCtx.beginPath(); poCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  poCtx.fillStyle = '#fff'; poCtx.fill();
+  poCtx.beginPath(); poCtx.arc(b.x, b.y, b.r * 2.5, 0, Math.PI * 2);
+  const glow = poCtx.createRadialGradient(b.x, b.y, b.r, b.x, b.y, b.r * 2.5);
+  glow.addColorStop(0, 'rgba(96,165,250,0.2)'); glow.addColorStop(1, 'transparent');
+  poCtx.fillStyle = glow; poCtx.fill();
+  requestAnimationFrame(runPong);
+}
+
+function resetPongBall() {
+  pong.ball.x = 250; pong.ball.y = 160;
+  pong.ball.vx = (Math.random() > 0.5 ? 1 : -1) * 3;
+  pong.ball.vy = (Math.random() - 0.5) * 4;
+}
+
+function startPongGame() {
+  pong.gameActive = true;
+  document.getElementById('pongOverlay').style.display = 'none';
+}
+
+function resetPongGame() {
+  pong.gameActive = false;
+  pong.score = [0, 0];
+  pong.ball = { x: 250, y: 160, vx: 3, vy: 2, r: 6 };
+  pong.p1 = { y: 130, h: 60 };
+  pong.p2 = { y: 130, h: 60 };
+  document.getElementById('pScore').textContent = '0';
+  document.getElementById('cScore').textContent = '0';
+  document.getElementById('pongFinalScore').textContent = '';
+  document.getElementById('pongOverlay').style.display = 'flex';
+}
+runPong();
+
+// ========== NEON DRAWING BOARD ==========
+const neonCanvas = document.getElementById('neonCanvas');
+const nCtx = neonCanvas.getContext('2d');
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+let hueValue = 0;
+
+neonCanvas.addEventListener('mousedown', (e) => {
+  isDrawing = true;
+  const rect = neonCanvas.getBoundingClientRect();
+  const scale = neonCanvas.width / rect.width;
+  lastX = (e.clientX - rect.left) * scale;
+  lastY = (e.clientY - rect.top) * scale;
+});
+
+neonCanvas.addEventListener('mousemove', (e) => {
+  if (!isDrawing) return;
+  const rect = neonCanvas.getBoundingClientRect();
+  const scale = neonCanvas.width / rect.width;
+  const x = (e.clientX - rect.left) * scale;
+  const y = (e.clientY - rect.top) * scale;
+  hueValue = (hueValue + 2) % 360;
+  const color = `hsl(${hueValue}, 100%, 50%)`;
+  nCtx.strokeStyle = color;
+  nCtx.lineWidth = 3;
+  nCtx.lineCap = 'round';
+  nCtx.lineJoin = 'round';
+  nCtx.beginPath();
+  nCtx.moveTo(lastX, lastY);
+  nCtx.lineTo(x, y);
+  nCtx.stroke();
+  nCtx.shadowColor = color;
+  nCtx.shadowBlur = 15;
+  nCtx.strokeStyle = color;
+  nCtx.globalAlpha = 0.5;
+  nCtx.beginPath();
+  nCtx.moveTo(lastX, lastY);
+  nCtx.lineTo(x, y);
+  nCtx.stroke();
+  nCtx.globalAlpha = 1;
+  nCtx.shadowBlur = 0;
+  lastX = x;
+  lastY = y;
+});
+
+neonCanvas.addEventListener('mouseup', () => { isDrawing = false; });
+neonCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+function clearNeon() {
+  nCtx.clearRect(0, 0, neonCanvas.width, neonCanvas.height);
+  hueValue = 0;
+}
+
+// ========== TYPING SPEED ==========
+const typingSentences = [
+  'the quick brown fox jumps over the lazy dog',
+  'code is poetry written in logic and light',
+  'simplicity is the ultimate sophistication',
+  'every pixel matters in great design',
+  'build fast ship often learn always'
+];
+let typingTarget = '', typingStart = null;
+
+function initTyping() {
+  typingTarget = typingSentences[Math.floor(Math.random() * typingSentences.length)];
+  document.getElementById('typingTarget').textContent = typingTarget;
+  document.getElementById('typingArea').value = '';
+  document.getElementById('wpmDisplay').textContent = '0';
+  document.getElementById('accDisplay').textContent = '100%';
+  typingStart = null;
+}
+
+function checkTyping() {
+  const input = document.getElementById('typingArea').value;
+  if (!typingStart && input.length > 0) typingStart = Date.now();
+  if (!typingStart) return;
+  const elapsed = (Date.now() - typingStart) / 60000;
+  const words = input.trim().split(/\s+/).filter(Boolean).length;
+  const wpm = elapsed > 0 ? Math.round(words / elapsed) : 0;
+  let correct = 0;
+  for (let i = 0; i < input.length; i++) {
+    if (input[i] === typingTarget[i]) correct++;
+  }
+  const acc = input.length > 0 ? Math.round((correct / input.length) * 100) : 100;
+  document.getElementById('wpmDisplay').textContent = wpm;
+  document.getElementById('accDisplay').textContent = acc + '%';
+  document.getElementById('accDisplay').style.color = acc > 90 ? '#22c55e' : acc > 70 ? '#f59e0b' : '#ef4444';
+  let html = '';
+  for (let i = 0; i < typingTarget.length; i++) {
+    if (i < input.length) {
+      html += input[i] === typingTarget[i]
+        ? `<span style="color:#22c55e">${typingTarget[i]}</span>`
+        : `<span style="color:#ef4444;text-decoration:underline">${typingTarget[i]}</span>`;
+    } else {
+      html += `<span style="color:#60a5fa">${typingTarget[i]}</span>`;
+    }
+  }
+  document.getElementById('typingTarget').innerHTML = html;
+}
+initTyping();
+
+// =
+// BACKEND - scroll-driven live code typer
+// =
+const backendLines = [
+  { t: 'comment', v: '// Express REST API - server.js' },
+  { t: 'keyword', v: "const" },{ t: 'plain', v: " express = " },{ t: 'fn', v: "require" },{ t: 'plain', v: "('express');" },
+  { t: 'keyword', v: "const" },{ t: 'plain', v: " jwt = " },{ t: 'fn', v: "require" },{ t: 'plain', v: "('jsonwebtoken');" },
+  { t: 'blank', v: '' },
+  { t: 'keyword', v: "const" },{ t: 'plain', v: " app = " },{ t: 'fn', v: "express" },{ t: 'plain', v: "();" },
+  { t: 'blank', v: '' },
+  { t: 'comment', v: '// Auth middleware' },
+  { t: 'keyword', v: "const" },{ t: 'plain', v: " auth = (req, res, next) => {" },
+  { t: 'plain', v: "  " },{ t: 'keyword', v: "const" },{ t: 'plain', v: " token = req.headers.authorization;" },
+  { t: 'plain', v: "  " },{ t: 'keyword', v: "if" },{ t: 'plain', v: " (!token) " },{ t: 'keyword', v: "return" },
+  { t: 'plain', v: "    res." },{ t: 'fn', v: "status" },{ t: 'plain', v: "(401)." },{ t: 'fn', v: "json" },{ t: 'plain', v: "({ error: 'Unauthorized' });" },
+  { t: 'keyword', v: "  try" },{ t: 'plain', v: " {" },
+  { t: 'plain', v: "    req.user = jwt." },{ t: 'fn', v: "verify" },{ t: 'plain', v: "(token, process.env.SECRET);" },
+  { t: 'fn', v: "    next" },{ t: 'plain', v: "();" },
+  { t: 'plain', v: "  } " },{ t: 'keyword', v: "catch" },{ t: 'plain', v: " (e) {" },
+  { t: 'plain', v: "    res." },{ t: 'fn', v: "status" },{ t: 'plain', v: "(403)." },{ t: 'fn', v: "json" },{ t: 'plain', v: "({ error: 'Forbidden' });" },
+  { t: 'plain', v: "  }" },
+  { t: 'plain', v: "};" },
+  { t: 'blank', v: '' },
+  { t: 'comment', v: '// GET /api/users' },
+  { t: 'plain', v: "app." },{ t: 'fn', v: "get" },{ t: 'plain', v: "('/api/users', auth, " },{ t: 'keyword', v: "async" },{ t: 'plain', v: " (req, res) => {" },
+  { t: 'keyword', v: "  try" },{ t: 'plain', v: " {" },
+  { t: 'plain', v: "    " },{ t: 'keyword', v: "const" },{ t: 'plain', v: " users = " },{ t: 'keyword', v: "await" },{ t: 'plain', v: " db." },{ t: 'fn', v: "query" },
+  { t: 'plain', v: "      ('SELECT * FROM users WHERE active = $1', [true]);" },
+  { t: 'plain', v: "    res." },{ t: 'fn', v: "json" },{ t: 'plain', v: "({ data: users.rows, count: users.rowCount });" },
+  { t: 'plain', v: "  } " },{ t: 'keyword', v: "catch" },{ t: 'plain', v: " (err) {" },
+  { t: 'plain', v: "    res." },{ t: 'fn', v: "status" },{ t: 'plain', v: "(500)." },{ t: 'fn', v: "json" },{ t: 'plain', v: "({ error: err.message });" },
+  { t: 'plain', v: "  }" },
+  { t: 'plain', v: "});" },
+  { t: 'blank', v: '' },
+  { t: 'comment', v: '// POST /api/users' },
+  { t: 'plain', v: "app." },{ t: 'fn', v: "post" },{ t: 'plain', v: "('/api/users', auth, " },{ t: 'keyword', v: "async" },{ t: 'plain', v: " (req, res) => {" },
+  { t: 'plain', v: "  " },{ t: 'keyword', v: "const" },{ t: 'plain', v: " { name, email, role } = req.body;" },
+  { t: 'plain', v: "  " },{ t: 'keyword', v: "const" },{ t: 'plain', v: " hash = " },{ t: 'keyword', v: "await" },{ t: 'plain', v: " bcrypt." },{ t: 'fn', v: "hash" },{ t: 'plain', v: "(req.body.password, 12);" },
+  { t: 'plain', v: "  " },{ t: 'keyword', v: "const" },{ t: 'plain', v: " user = " },{ t: 'keyword', v: "await" },{ t: 'plain', v: " db." },{ t: 'fn', v: "query" },
+  { t: 'plain', v: "    ('INSERT INTO users(name,email,role,hash) VALUES($1,$2,$3,$4) RETURNING *'," },
+  { t: 'plain', v: "     [name, email, role, hash]);" },
+  { t: 'plain', v: "  res." },{ t: 'fn', v: "status" },{ t: 'plain', v: "(201)." },{ t: 'fn', v: "json" },{ t: 'plain', v: "(user.rows[0]);" },
+  { t: 'plain', v: "});" },
+  { t: 'blank', v: '' },
+  { t: 'plain', v: "app." },{ t: 'fn', v: "listen" },{ t: 'plain', v: "(3000, () =>" },
+  { t: 'plain', v: "  console." },{ t: 'fn', v: "log" },{ t: 'plain', v: "('🚀 Server running on :3000'));" },
+];
+
+function colorizeToken(t, v) {
+  if (t === 'comment') return `<span style="color:#64748b;font-style:italic">${v}</span>`;
+  if (t === 'keyword') return `<span style="color:#c084fc">${v}</span>`;
+  if (t === 'fn') return `<span style="color:#38bdf8">${v}</span>`;
+  if (t === 'blank') return '\n';
+  return `<span style="color:#e2e8f0">${v}</span>`;
+}
+
+let backendRenderedLines = 0;
+let backendCharPos = 0;
+let backendLineBuffer = '';
+let backendFullHTML = '';
+let backendTyping = false;
+const backendEl = document.getElementById('backendCodeEl');
+
+function buildBackendLine(idx) {
+  const item = backendLines[idx];
+  if (!item) return null;
+  return colorizeToken(item.t, item.v);
+}
+
+function backendTypeNext() {
+  if (backendRenderedLines >= backendLines.length) return;
+  const html = buildBackendLine(backendRenderedLines);
+  backendFullHTML += html + (backendLines[backendRenderedLines].t === 'blank' ? '\n' : '\n');
+  backendRenderedLines++;
+  backendEl.innerHTML = backendFullHTML + '<span style="display:inline-block;width:8px;height:14px;background:#38bdf8;vertical-align:middle;animation:blink 1s step-end infinite;"></span>';
+  backendEl.scrollTop = backendEl.scrollHeight;
+}
+
+// Scroll listener (kept for other sections)
+const appScroller = document.getElementById('appWrapper');
+let backendSection = document.getElementById('skillBackend');
+
+// Add blink keyframe
+const blinkStyle = document.createElement('style');
+blinkStyle.textContent = '@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }';
+document.head.appendChild(blinkStyle);
+
+// =
+// CRACK SOURCE CODE RENDERER - uses this page's own HTML as content
+// =
+(function initSourceCodeCracks() {
+  // Grab this page's own source, split into lines
+  const fullSrc = document.documentElement.outerHTML;
+  const lines = fullSrc.split('\n');
+  const totalLines = lines.length;
+
+  const shardIds = ['srcShard1','srcShard2','srcShardMain','srcShard4','srcShard5','srcShard6'];
+  // Each shard gets a different start offset so they show different parts of the code
+  const offsets = shardIds.map((_, i) => Math.floor((i / shardIds.length) * totalLines));
+  const isMobileDevice = window.innerWidth <= 640;
+  const speeds  = isMobileDevice ? [300, 280, 250, 290, 310, 320] : [110, 90, 75, 95, 105, 120]; // ms per tick, main is fastest
+
+  shardIds.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let pos = offsets[idx];
+    const isMain = id === 'srcShardMain';
+
+    function tick() {
+      const rowCount = isMain ? (isMobileDevice ? 14 : 28) : (isMobileDevice ? 8 : 14);
+      const slice = [];
+      for (let i = 0; i < rowCount; i++) {
+        slice.push(lines[(pos + i) % totalLines]);
+      }
+      // Syntax-highlight-ish coloring
+      const accent = window._accent1 || '#38bdf8';
+      const accentDim = window._accentRgb || '56,189,248';
+      let html = slice.map((line, i) => {
+        const fade = isMain ? (0.45 + (i / rowCount) * 0.45) : (0.3 + (i / rowCount) * 0.4);
+        const escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        let colored = escaped
+          .replace(/(function|const|let|var|return|if|else|for|while|class|new|this|typeof|=>)/g,
+            `<span style="color:rgba(${accentDim},${fade+0.2})">$1</span>`)
+          .replace(/(["'`][^"'`]*["'`])/g,
+            `<span style="color:rgba(${accentDim},${fade-0.05})">$1</span>`);
+        return `<span style="color:rgba(${isMain?accentDim:'51,65,85'},${fade});">${colored}\n</span>`;
+      }).join('');
+      el.innerHTML = html;
+      pos = (pos + 1) % totalLines;
+    }
+    setInterval(tick, speeds[idx]);
+    tick();
+  });
+})();
+
+// =
+// FRONTEND - interactive demo bindings
+// =
+let feThemeIsDark = false;
+
+function feToggleTheme() {
+  feThemeIsDark = !feThemeIsDark;
+  const box = document.getElementById('feThemeBox');
+  const lbl = document.getElementById('feThemeLabel');
+  const knob = document.getElementById('feThemeKnob');
+  const btn = document.getElementById('feThemeBtn');
+  const wrapper = document.getElementById('appWrapper');
+  const rgb = window._accentRgb || '56,189,248';
+  const c1 = window._accent1 || '#38bdf8';
+  if (feThemeIsDark) {
+    // dark
+    document.body.classList.add('dark-mode');
+    wrapper.style.backgroundColor = '#0f172a';
+    wrapper.style.backgroundImage = `linear-gradient(rgba(${rgb},0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(${rgb},0.06) 1px,transparent 1px)`;
+    box.style.background = 'rgba(15,23,42,0.55)';
+    lbl.style.color = '#e2e8f0';
+    lbl.textContent = 'Dark Mode';
+    btn.style.background = c1;
+    knob.style.transform = 'translateX(24px)';
+  } else {
+    // light
+    document.body.classList.remove('dark-mode');
+    wrapper.style.backgroundColor = '#f0f9ff';
+    wrapper.style.backgroundImage = `linear-gradient(rgba(${rgb},0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(${rgb},0.1) 1px,transparent 1px)`;
+    box.style.background = 'rgba(240,249,255,0.7)';
+    lbl.style.color = '#0f172a';
+    lbl.textContent = 'Light Mode';
+    btn.style.background = '#94a3b8';
+    knob.style.transform = 'translateX(0)';
+  }
+}
+
+// Tag all accent-colored elements once on load for reliable re-coloring
+function initAccentTags() {
+  // Text color elements
+  document.querySelectorAll('[style*="color:#0284c7"],[style*="color:#0ea5e9"],[style*="color:#38bdf8"]').forEach(el => {
+    if (!el.dataset.accentText) {
+      const col = el.style.color;
+      el.dataset.accentText = col.includes('0284c7') ? 'c2' : col.includes('0ea5e9') ? 'c2' : 'c1';
+    }
+  });
+  // SVG stroke elements
+  document.querySelectorAll('[stroke="#38bdf8"],[stroke="#0ea5e9"]').forEach(el => {
+    if (!el.dataset.accentStroke) {
+      el.dataset.accentStroke = el.getAttribute('stroke') === '#0ea5e9' ? 'c2' : 'c1';
+    }
+  });
+  // SVG fill elements (non-body backgrounds)
+  document.querySelectorAll('[fill="#38bdf8"],[fill="#0ea5e9"]').forEach(el => {
+    if (!el.dataset.accentFill) {
+      el.dataset.accentFill = el.getAttribute('fill') === '#0ea5e9' ? 'c2' : 'c1';
+    }
+  });
+  // Accent background elements
+  document.querySelectorAll('[style*="rgba(56,189,248"]').forEach(el => {
+    if (!el.dataset.accentBg) {
+      el.dataset.accentBg = '1';
+      el.dataset.accentBgOrig = el.getAttribute('style') || '';
+    }
+  });
+  // Border elements
+  document.querySelectorAll('[style*="rgba(56,189,248"][style*="border"],.glow-card').forEach(el => {
+    if (!el.dataset.accentBorder) el.dataset.accentBorder = '1';
+  });
+}
+
+function feSiteColor(c1, c2) {
+  const rgb = hexToRgb(c1);
+  const root = document.documentElement;
+
+  // Snapshot PREVIOUS values BEFORE overwriting them
+  const prevR  = window._accentRgb  || '56,189,248';
+  const prev1  = window._accent1    || '#38bdf8';
+  const prev2  = window._accent2    || '#0ea5e9';
+
+  root.style.setProperty('--accent1', c1);
+  root.style.setProperty('--accent2', c2);
+  if (rgb) root.style.setProperty('--accent-rgb', rgb);
+  window._accentRgb = rgb || '56,189,248';
+  window._accent1 = c1;
+  window._accent2 = c2;
+
+  // Grid background
+  const wrapper = document.getElementById('appWrapper');
+  const isDark = document.body.classList.contains('dark-mode');
+  const alpha = isDark ? '0.06' : '0.1';
+  if (rgb) {
+    wrapper.style.backgroundImage =
+      `linear-gradient(rgba(${rgb},${alpha}) 1px,transparent 1px),linear-gradient(90deg,rgba(${rgb},${alpha}) 1px,transparent 1px)`;
+  }
+
+  // Card borders
+  document.querySelectorAll('.glow-card').forEach(el => {
+    el.style.borderColor = `rgba(${rgb || '56,189,248'},0.27)`;
+  });
+
+  // Scrollbar thumb
+  const scrollStyle = document.getElementById('_scrollThumbStyle') || (() => {
+    const s = document.createElement('style'); s.id = '_scrollThumbStyle'; document.head.appendChild(s); return s;
+  })();
+  // scrollbar hidden - no thumb to recolor
+
+  // Glow toggle button
+  const bolt = document.getElementById('glowBoltIcon');
+  if (bolt) bolt.setAttribute('stroke', c1);
+  const glowBtn = document.getElementById('feGlowBtn');
+  if (glowBtn) {
+    glowBtn.style.borderColor = c1 + '66';
+    const knobEl = glowBtn.querySelector('.knob');
+    if (knobEl) knobEl.style.background = c1;
+    const starsEl = glowBtn.querySelector('.stars');
+    if (starsEl) starsEl.style.color = c1;
+  }
+  const feThemeBtn = document.getElementById('feThemeBtn');
+  if (feThemeBtn && feThemeIsDark) feThemeBtn.style.background = c1;
+
+  // ── COMPREHENSIVE INLINE STYLE RECOLOR ──
+  // Walk every element with a style attribute and replace ALL accent color values
+  if (rgb) {
+    document.querySelectorAll('[style]:not([data-no-recolor])').forEach(el => {
+      let s = el.getAttribute('style') || '';
+      // Replace old rgba patterns → new accent rgb
+      s = s.replace(/rgba\(56,189,248,([^)]+)\)/g, `rgba(${rgb},$1)`);
+      s = s.replace(/rgba\(14,165,233,([^)]+)\)/g,  `rgba(${rgb},$1)`);
+      // Replace previous dynamic accent rgb
+      if (prevR && prevR !== '56,189,248' && prevR !== rgb) {
+        const esc = prevR.replace(/,/g, ',');
+        s = s.replace(new RegExp(`rgba\\(${esc},`, 'g'), `rgba(${rgb},`);
+      }
+      // Replace hex accent colors in style values
+      const escHex = h => h.replace('#', '\\#?').replace(/([a-f0-9])/gi, '$1');
+      if (prev1 !== '#38bdf8') s = s.replace(new RegExp(prev1.replace('#','#'), 'gi'), c1);
+      if (prev2 !== '#0ea5e9') s = s.replace(new RegExp(prev2.replace('#','#'), 'gi'), c2);
+      s = s.replace(/#38bdf8/gi, c1).replace(/#0ea5e9/gi, c2).replace(/#0284c7/gi, c2);
+      // Replace gradient stops
+      s = s.replace(/linear-gradient\(90deg,[^,)]+,[^)]+\)/g,
+        `linear-gradient(90deg,${c1},${c2})`);
+      el.setAttribute('style', s);
+    });
+
+    // SVG attributes: stroke and fill
+    document.querySelectorAll('svg [stroke], svg [fill]').forEach(el => {
+      const stroke = el.getAttribute('stroke');
+      const fill = el.getAttribute('fill');
+      if (stroke && stroke !== 'none' && stroke !== 'currentColor') {
+        if (stroke === '#38bdf8' || stroke === prev1) el.setAttribute('stroke', c1);
+        else if (stroke === '#0ea5e9' || stroke === '#0284c7' || stroke === prev2) el.setAttribute('stroke', c2);
+      }
+      if (fill && fill !== 'none' && fill !== 'currentColor' && fill !== '#fff' && fill !== '#ffffff' && fill !== 'white') {
+        if (fill === '#38bdf8' || fill === prev1) el.setAttribute('fill', c1);
+        else if (fill === '#0ea5e9' || fill === '#0284c7' || fill === prev2) el.setAttribute('fill', c2);
+      }
+    });
+
+    // Gradient text
+    document.querySelectorAll('.accent-gradient-text').forEach(el => {
+      el.style.backgroundImage = `linear-gradient(90deg,${c1},${c2})`;
+      el.style.webkitBackgroundClip = 'text';
+      el.style.webkitTextFillColor = 'transparent';
+      el.style.backgroundClip = 'text';
+    });
+
+    // Nav link underlines
+    const navStyle = document.getElementById('_navAccentStyle') || (() => {
+      const s = document.createElement('style'); s.id = '_navAccentStyle'; document.head.appendChild(s); return s;
+    })();
+    navStyle.textContent = `.nav-link::after{background:linear-gradient(90deg,${c1},${c2})!important;}`;
+
+    // Crack glow SVG edges - recolor all polylines and polygons in both SVGs
+    document.querySelectorAll('#crackGlowSvg polyline, #crackGlowSvg polygon').forEach(el => {
+      el.setAttribute('stroke', c1);
+    });
+    document.querySelectorAll('#mCrackGlowSvg polyline, #mCrackGlowSvg polygon').forEach(el => {
+      el.setAttribute('stroke', c1);
+    });
+  }
+
+  // Update custom cursor color if active
+  if (window._cogCursorActive) updateCogCursorColor(c1);
+}
+
+// Init tagging after DOM ready
+document.addEventListener('DOMContentLoaded', initAccentTags);
+// Also run now in case DOMContentLoaded already fired
+initAccentTags();
+
+let feGlowIsOn = false;
+
+function feToggleGlow() {
+  feGlowIsOn = !feGlowIsOn;
+  const btn = document.getElementById('feGlowBtn');
+  const box = document.getElementById('feGlowBox');
+  const lbl = document.getElementById('feGlowLabel');
+
+  if (feGlowIsOn) {
+    btn.classList.add('active');
+    document.body.classList.add('glow-mode');
+    lbl.style.textShadow = '0 0 10px var(--accent1)';
+    lbl.style.color = 'var(--accent1)';
+    box.style.background = 'rgba(var(--accent-rgb),0.1)';
+    box.style.borderColor = 'var(--accent1)';
+    box.style.boxShadow = '0 0 20px rgba(var(--accent-rgb),0.25), inset 0 0 14px rgba(var(--accent-rgb),0.08)';
+    // Speed up particles
+    window._particleSpeedMult = 4;
+  } else {
+    btn.classList.remove('active');
+    document.body.classList.remove('glow-mode');
+    lbl.style.textShadow = '';
+    lbl.style.color = '#cbd5e1';
+    box.style.background = 'rgba(56,189,248,0.06)';
+    box.style.borderColor = 'rgba(56,189,248,0.18)';
+    box.style.boxShadow = '';
+    window._particleSpeedMult = 1;
+  }
+}
+
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : null;
+}
+
+// =
+// DATABASE - 4 tech icons with lines + scroll-driven glowing dot
+// =
+(function initDBCanvas() {
+  const canvas = document.getElementById('dbCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // 4 icons in a ZIGZAG horizontal line
+  // top-left → bottom-right → top-right → bottom-right pattern
+  const nodes = [
+    { id: 0, x: 70,  y: 100, name: 'PostgreSQL', sub: 'Relational DB',   icon: (x,y,s,a)=>drawDBIcon(x,y,s,a) },
+    { id: 1, x: 195, y: 320, name: 'MongoDB',    sub: 'Document Store',  icon: (x,y,s,a)=>drawDocIcon(x,y,s,a) },
+    { id: 2, x: 320, y: 100, name: 'Redis',      sub: 'Cache / KV',      icon: (x,y,s,a)=>drawCacheIcon(x,y,s,a) },
+    { id: 3, x: 440, y: 320, name: 'DynamoDB',   sub: 'Cloud NoSQL',     icon: (x,y,s,a)=>drawCloudIcon(x,y,s,a) },
+  ];
+
+  // Single zigzag path: 0→1→2→3
+  const edges = [
+    { a: 0, b: 1 }, { a: 1, b: 2 }, { a: 2, b: 3 }
+  ];
+  const totalEdgeLen = edges.length;
+  let dotProgress = 0; // starts at node 0
+
+  function getAccent() { return window._accent1 || '#38bdf8'; }
+  function getAccentRgb() { return window._accentRgb || '56,189,248'; }
+
+  // Icon drawing functions
+  function drawDBIcon(x, y, size, alpha) {
+    const a = getAccent(), r = getAccentRgb();
+    ctx.save(); ctx.globalAlpha = alpha;
+    // Cylinder (database)
+    ctx.strokeStyle = a; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, y - size*0.28, size*0.38, size*0.13, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - size*0.38, y - size*0.28); ctx.lineTo(x - size*0.38, y + size*0.28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + size*0.38, y - size*0.28); ctx.lineTo(x + size*0.38, y + size*0.28); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y + size*0.28, size*0.38, size*0.13, 0, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${r},0.08)`; ctx.fill(); ctx.stroke();
+    // middle lines
+    ctx.beginPath(); ctx.ellipse(x, y, size*0.38, size*0.11, 0, 0, Math.PI); ctx.stroke();
+    ctx.restore();
+  }
+  function drawDocIcon(x, y, size, alpha) {
+    const a = getAccent(), r = getAccentRgb();
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.strokeStyle = a; ctx.lineWidth = 2;
+    // Document shape
+    const hw = size*0.3, hh = size*0.38;
+    ctx.beginPath();
+    ctx.moveTo(x-hw, y-hh); ctx.lineTo(x+hw*0.55, y-hh);
+    ctx.lineTo(x+hw, y-hh+hw*0.55);
+    ctx.lineTo(x+hw, y+hh); ctx.lineTo(x-hw, y+hh); ctx.closePath();
+    ctx.fillStyle = `rgba(${r},0.08)`; ctx.fill(); ctx.stroke();
+    // fold corner
+    ctx.beginPath(); ctx.moveTo(x+hw*0.55,y-hh); ctx.lineTo(x+hw*0.55,y-hh+hw*0.55); ctx.lineTo(x+hw,y-hh+hw*0.55); ctx.stroke();
+    // lines inside
+    ctx.lineWidth = 1.2;
+    [0.3,0.1,-0.1,-0.22].forEach((dy) => {
+      ctx.beginPath(); ctx.moveTo(x-hw*0.6,y+hh*dy); ctx.lineTo(x+hw*0.55,y+hh*dy); ctx.stroke();
+    });
+    ctx.restore();
+  }
+  function drawCacheIcon(x, y, size, alpha) {
+    const a = getAccent(), r = getAccentRgb();
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.strokeStyle = a; ctx.lineWidth = 2;
+    // Lightning bolt (speed/cache)
+    ctx.beginPath();
+    ctx.moveTo(x+size*0.1,y-size*0.38);
+    ctx.lineTo(x-size*0.12,y-size*0.02);
+    ctx.lineTo(x+size*0.06,y-size*0.02);
+    ctx.lineTo(x-size*0.1,y+size*0.38);
+    ctx.lineTo(x+size*0.14,y+size*0.06);
+    ctx.lineTo(x-size*0.04,y+size*0.06);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${r},0.12)`; ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  function drawCloudIcon(x, y, size, alpha) {
+    const a = getAccent(), r = getAccentRgb();
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.strokeStyle = a; ctx.lineWidth = 2;
+    // Cloud shape
+    ctx.beginPath();
+    ctx.arc(x-size*0.18, y, size*0.22, Math.PI*0.5, Math.PI*1.5);
+    ctx.arc(x-size*0.1, y-size*0.22, size*0.18, Math.PI, 0);
+    ctx.arc(x+size*0.12, y-size*0.22, size*0.22, Math.PI, 0);
+    ctx.arc(x+size*0.22, y, size*0.2, Math.PI*1.5, Math.PI*0.5);
+    ctx.lineTo(x-size*0.18, y+size*0.2);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${r},0.08)`; ctx.fill(); ctx.stroke();
+    // down arrow
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x, y+size*0.24); ctx.lineTo(x, y+size*0.42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-size*0.12, y+size*0.3); ctx.lineTo(x, y+size*0.42); ctx.lineTo(x+size*0.12, y+size*0.3); ctx.stroke();
+    ctx.restore();
+  }
+
+  function lerp(a,b,t){ return a+(b-a)*t; }
+
+  function drawEdgeLine(e, glowAmt) {
+    const n1 = nodes[e.a], n2 = nodes[e.b];
+    const r = getAccentRgb();
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y);
+    ctx.strokeStyle = `rgba(${r},${0.18 + glowAmt*0.3})`;
+    ctx.lineWidth = 1 + glowAmt*1.5;
+    ctx.setLineDash([6, 8]);
+    if (glowAmt > 0) { ctx.shadowColor = getAccent(); ctx.shadowBlur = 8*glowAmt; }
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function drawNode(n, hl) {
+    const r = getAccentRgb(), a = getAccent();
+    const size = 32;
+    // Icon background circle
+    ctx.save();
+    if (hl) { ctx.shadowColor = a; ctx.shadowBlur = 28; }
+    ctx.beginPath(); ctx.arc(n.x, n.y, size+2, 0, Math.PI*2);
+    ctx.fillStyle = hl ? `rgba(${r},0.18)` : `rgba(${r},0.07)`;
+    ctx.fill();
+    ctx.strokeStyle = hl ? a : `rgba(${r},0.35)`;
+    ctx.lineWidth = hl ? 1.8 : 1;
+    ctx.stroke();
+    ctx.restore();
+    // Icon
+    n.icon(n.x, n.y, size, hl ? 1 : 0.65);
+    // Name label
+    ctx.font = `${hl?'bold ':''}12px "Outfit",sans-serif`;
+    ctx.fillStyle = hl ? '#e2e8f0' : '#94a3b8';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.name, n.x, n.y + size + 18);
+    // Sub label
+    ctx.font = '9.5px "IBM Plex Mono",monospace';
+    ctx.fillStyle = `rgba(${r},${hl?0.8:0.45})`;
+    ctx.fillText(n.sub, n.x, n.y + size + 31);
+  }
+
+  function drawGlowDot(x, y) {
+    const r = getAccentRgb(), a = getAccent();
+    const grad = ctx.createRadialGradient(x,y,0,x,y,22);
+    grad.addColorStop(0, `rgba(${r},0.7)`);
+    grad.addColorStop(1, `rgba(${r},0)`);
+    ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = a; ctx.shadowBlur = 18;
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle = a; ctx.fill();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    // Draw all edges, highlight the active one
+    const edgeIdx = Math.min(Math.floor(dotProgress), totalEdgeLen - 1);
+    const t = Math.min(dotProgress - Math.floor(dotProgress), 1);
+    edges.forEach((e, i) => drawEdgeLine(e, i === edgeIdx ? Math.sin(t * Math.PI) : 0));
+    // Draw nodes
+    const activeEdge = edges[edgeIdx];
+    nodes.forEach((n, i) => {
+      const nearSrc = t < 0.18 && i === activeEdge.a;
+      const nearDst = t > 0.82 && i === activeEdge.b;
+      drawNode(n, nearSrc || nearDst);
+    });
+    // Dot position
+    const e = activeEdge;
+    const dotX = lerp(nodes[e.a].x, nodes[e.b].x, t);
+    const dotY = lerp(nodes[e.a].y, nodes[e.b].y, t);
+    drawGlowDot(dotX, dotY);
+    requestAnimationFrame(render);
+  }
+
+  // Scroll-driven: dot moves ONLY while the DB section is visible in viewport
+  const dbSection = document.getElementById('skillDB');
+  let dbInView = false;
+
+  const dbObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => { dbInView = e.isIntersecting; });
+  }, { root: appScroller, threshold: 0.6 });
+  if (dbSection) dbObserver.observe(dbSection);
+
+  appScroller.addEventListener('scroll', () => {
+    if (!dbSection || !dbInView) return;
+    const sectionTop = dbSection.offsetTop;
+    const sectionH = dbSection.offsetHeight;
+    const scrolled = appScroller.scrollTop - sectionTop;
+    // Start moving at 60% scroll into section, finish at 100%
+    const startAt = sectionH * 0.6;
+    const range   = sectionH * 0.4;
+    const pct = Math.max(0, Math.min(1, (scrolled - startAt) / range));
+    dotProgress = pct * totalEdgeLen;
+  });
+
+  render();
+})();
+
+const appScrollerEl = document.getElementById('appWrapper');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { root: appScrollerEl, threshold: 0.05 });
+document.querySelectorAll('.section-reveal').forEach(el => observer.observe(el));
+
+// ========== PROJECT MODAL ==========
+const projects = [
+  {
+    title: 'WebGL Terrain',
+    description: 'Procedural terrain generation with real-time lighting.',
+    technologies: ['Three.js', 'GLSL', 'WebGL'],
+    details: 'A high-performance 3D terrain generator using procedural noise algorithms. Features real-time lighting, camera controls, and dynamic level-of-detail rendering. Optimized for smooth 60fps performance even on complex terrains.'
+  },
+  {
+    title: 'Data Dashboard',
+    description: 'Real-time analytics with interactive charts and filters.',
+    technologies: ['React', 'D3', 'Node.js'],
+    details: 'An interactive data visualization platform featuring real-time updates, customizable charts, and advanced filtering. Built with React for responsive UI and D3.js for complex data transformations and visualizations.'
+  },
+  {
+    title: 'Particle Engine',
+    description: 'GPU-accelerated particle system with physics interactions.',
+    technologies: ['Canvas', 'WebGL', 'JavaScript'],
+    details: 'A high-performance particle system supporting thousands of particles with GPU acceleration. Includes collision detection, force fields, and physics-based interactions for creating stunning visual effects.'
+  },
+  {
+    title: 'Design System',
+    description: 'Comprehensive component library with documentation and examples.',
+    technologies: ['Vue.js', 'Storybook', 'CSS'],
+    details: 'A scalable component library featuring 50+ reusable UI components with comprehensive documentation. Includes interactive Storybook examples, accessibility features, and a detailed style guide for consistent design across projects.'
+  }
+];
+
+function openProjectModal(index) {
+  const project = projects[index];
+  document.getElementById('modalTitle').textContent = project.title;
+  document.getElementById('modalDescription').textContent = project.description;
+  document.getElementById('modalDetails').textContent = project.details;
+  const techsContainer = document.getElementById('modalTechs');
+  techsContainer.innerHTML = '';
+  project.technologies.forEach(tech => {
+    const span = document.createElement('span');
+    span.className = 'text-xs px-3 py-1 rounded-full';
+    span.style.cssText = 'background:rgba(56,189,248,0.11);color:#0284c7;';
+    span.textContent = tech;
+    techsContainer.appendChild(span);
+  });
+  document.getElementById('projectModal').classList.remove('hidden');
+}
+
+function closeProjectModal() {
+  document.getElementById('projectModal').classList.add('hidden');
+}
+
+document.getElementById('projectModal').addEventListener('click', (e) => {
+  if (e.target.id === 'projectModal') closeProjectModal();
+});
+
+// ========== CERTIFICATION MODAL ==========
+const certifications = [
+  { title: 'AWS Solutions Architect', year: '2023', gradient: 'linear-gradient(135deg,#FF9900,#FF6600)', icon: 'cloud' },
+  { title: 'Google Data Engineer', year: '2023', gradient: 'linear-gradient(135deg,#4285F4,#34A853)', icon: 'database' },
+  { title: 'React Patterns', year: '2022', gradient: 'linear-gradient(135deg,#61DAFB,#282C34)', icon: 'layers' },
+  { title: 'Full Stack JavaScript', year: '2022', gradient: 'linear-gradient(135deg,#1F70B8,#0066CC)', icon: 'code' }
+];
+
+function openCertModal(index) {
+  const cert = certifications[index];
+  document.getElementById('certTitle').textContent = cert.title;
+  document.getElementById('certYear').textContent = `Earned in ${cert.year}`;
+  const container = document.getElementById('certImageContainer');
+  container.innerHTML = `<div style="background: ${cert.gradient}; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 8px;"><i data-lucide="${cert.icon}" style="width:64px;height:64px;color:#fff;opacity:0.8;"></i></div>`;
+  lucide.createIcons();
+  document.getElementById('certModal').classList.remove('hidden');
+}
+
+function closeCertModal() {
+  document.getElementById('certModal').classList.add('hidden');
+}
+
+document.getElementById('certModal').addEventListener('click', (e) => {
+  if (e.target.id === 'certModal') closeCertModal();
+});
+
+// ========== COG MENU ==========
+let cogOpen = false;
+
+function toggleCogMenu() {
+  cogOpen = !cogOpen;
+  const menu = document.getElementById('cogMenu');
+  if (cogOpen) {
+    menu.style.opacity = '1';
+    menu.style.pointerEvents = 'auto';
+    menu.style.transform = 'scale(1) translateY(0)';
+  } else {
+    menu.style.opacity = '0';
+    menu.style.pointerEvents = 'none';
+    menu.style.transform = 'scale(0.92) translateY(-8px)';
+  }
+}
+
+function closeCogMenu() {
+  if (cogOpen) toggleCogMenu();
+}
+
+document.addEventListener('click', (e) => {
+  if (cogOpen && !document.getElementById('cogBtn').contains(e.target) && !document.getElementById('cogMenu').contains(e.target)) {
+    closeCogMenu();
+  }
+});
+
+// ========== INIT ==========
+lucide.createIcons();
+
+// Apply default config
+document.getElementById('heroName').textContent = 'John Paul Rebuyas';
+document.getElementById('heroTagline').textContent = 'Full-Stack Developer';
+document.getElementById('aboutText').textContent = 'I build scalable web applications with modern technologies. Passionate about clean code, responsive design, and solving complex problems.';
+
+// Init accennt.getElementById('heroName').textContent = 'John Paul Rebuyas';
+document.getElementById('heroTagline').textContent = 'Full-Stack Developer';
+document.getElementById('aboutText').textContent = 'I build scalable web applications with modern technologies. Passionate about clean code, responsive design, and solving complex problems.';
+
+// Init accent tracking vars (default: sky blue)
+window._accent1 = '#38bdf8';
+window._accent2 = '#0ea5e9';
+window._accentRgb = '56,189,248';
+window._prevAccent1 = '#38bdf8';
+window._prevAccent2 = '#0ea5e9';
+window._prevAccentRgb = '56,189,248';
+window._particleSpeedMult = 1;
+
+// Re-tag after lucide icons are rendered
+initAccentTags();
+
+// ── DEFAULT STATE: dark mode ON, glow OFF ──
+(function applyDefaults() {
+  // Dark mode on
+  feThemeIsDark = true;
+  const box = document.getElementById('feThemeBox');
+  const lbl = document.getElementById('feThemeLabel');
+  const knob = document.getElementById('feThemeKnob');
+  const btn = document.getElementById('feThemeBtn');
+  const wrapper = document.getElementById('appWrapper');
+  document.body.classList.add('dark-mode');
+  wrapper.style.backgroundColor = '#0f172a';
+  wrapper.style.backgroundImage = 'linear-gradient(rgba(56,189,248,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,0.06) 1px,transparent 1px)';
+  if (box) box.style.background = 'rgba(15,23,42,0.55)';
+  if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = 'Dark Mode'; }
+  if (btn) btn.style.background = '#38bdf8';
+  if (knob) knob.style.transform = 'translateX(24px)';
+
+  // Glow off (already off by default - just ensure state is clean)
+  feGlowIsOn = false;
+  const glowBtn = document.getElementById('feGlowBtn');
+  const glowBox = document.getElementById('feGlowBox');
+  const glowLbl = document.getElementById('feGlowLabel');
+  if (glowBtn) glowBtn.classList.remove('active');
+  document.body.classList.remove('glow-mode');
+  if (glowLbl) { glowLbl.style.textShadow = ''; glowLbl.style.color = '#cbd5e1'; }
+  if (glowBox) { glowBox.style.background = 'rgba(56,189,248,0.06)'; glowBox.style.borderColor = 'rgba(56,189,248,0.18)'; glowBox.style.boxShadow = ''; }
+  window._particleSpeedMult = 1;
+})();
+
+// ========== COG CURSOR ==========
+window._cogCursorActive = false;
+
+function updateCogCursorColor(c1) {
+  const inner = document.getElementById('cogCursorInner');
+  const outer = document.getElementById('cogCursorOuter');
+  if (inner) inner.setAttribute('fill', c1);
+  if (outer) outer.setAttribute('fill', c1);
+}
+
+function feToggleCursor() {
+  window._cogCursorActive = !window._cogCursorActive;
+  const btn = document.getElementById('feCursorBtn');
+  const box = document.getElementById('feCursorBox');
+  const lbl = document.getElementById('feCursorLabel');
+  const accent = window._accent1 || '#38bdf8';
+  const accentRgb = window._accentRgb || '56,189,248';
+
+  if (window._cogCursorActive) {
+    document.body.classList.add('cog-cursor-mode');
+    btn.classList.add('active');
+    box.style.background = `rgba(${accentRgb},0.1)`;
+    box.style.borderColor = accent;
+    box.style.boxShadow = `0 0 14px rgba(${accentRgb},0.35)`;
+    if (lbl) { lbl.style.color = accent; lbl.style.textShadow = `0 0 8px ${accent}`; }
+    updateCogCursorColor(accent);
+  } else {
+    document.body.classList.remove('cog-cursor-mode');
+    btn.classList.remove('active');
+    box.style.background = `rgba(${accentRgb},0.06)`;
+    box.style.borderColor = `rgba(${accentRgb},0.18)`;
+    box.style.boxShadow = '';
+    if (lbl) { lbl.style.color = '#cbd5e1'; lbl.style.textShadow = ''; }
+  }
+}
+
+// Track mouse and move the cog cursor
+document.addEventListener('mousemove', (e) => {
+  if (!window._cogCursorActive) return;
+  const cursor = document.getElementById('cogCursor');
+  if (cursor) {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  }
+});
+
+// ========== MOBILE BACKEND CRACK - single centered glass shard with scrolling code ==========
+(function initMobileCrack() {
+  function isMobile() { return window.innerWidth <= 640; }
+
+  function toggleVisibility() {
+    const el = document.getElementById('backendCrackMobile');
+    if (!el) return;
+    el.style.display = isMobile() ? 'block' : 'none';
+  }
+  toggleVisibility();
+  window.addEventListener('resize', toggleVisibility);
+
+  function start() {
+    const el = document.getElementById('mShardMain');
+    if (!el) return;
+
+    const fullSrc = document.documentElement.outerHTML;
+    const lines = fullSrc.split('\n');
+    const totalLines = lines.length;
+    let pos = Math.floor(totalLines * 0.15);
+
+    function tick() {
+      const accent = window._accent1 || '#38bdf8';
+      const accentRgb = window._accentRgb || '56,189,248';
+      const rowCount = 32;
+      let html = '';
+      for (let i = 0; i < rowCount; i++) {
+        const line = lines[(pos + i) % totalLines];
+        const fade = 0.35 + (i / rowCount) * 0.55;
+        const escaped = line
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        const colored = escaped
+          .replace(/(function|const|let|var|return|if|else|for|while|class|new|this|typeof|=>)/g,
+            `<span style="color:rgba(${accentRgb},${Math.min(1, fade + 0.25)})">$1</span>`)
+          .replace(/(["'`][^"'`]*["'`])/g,
+            `<span style="color:rgba(${accentRgb},${Math.max(0, fade)})">$1</span>`);
+        html += `<span style="color:rgba(${accentRgb},${fade});">${colored}\n</span>`;
+      }
+      el.innerHTML = html;
+      pos = (pos + 1) % totalLines;
+    }
+
+    setInterval(tick, window.innerWidth <= 640 ? 200 : 80);
+    tick();
+
+    // Keep glow outline color in sync with accent
+    function syncGlow() {
+      const c = window._accent1 || '#38bdf8';
+      const edge = document.getElementById('mcgEdge1');
+      if (edge) edge.setAttribute('stroke', c);
+      const fill = document.getElementById('mImpactFill');
+      if (fill) fill.setAttribute('fill', c);
+    }
+    syncGlow();
+    setInterval(syncGlow, 800);
+  }
+
+  setTimeout(start, 200);
+})();
+// =
+// LANDING PAGE - COG SPIN SYSTEM (clean rewrite)
+// =
+(function initLanding() {
+  const landing = document.getElementById('landingPage');
+  const canvas  = document.getElementById('landingCanvas');
+  const bar     = document.getElementById('landingBar');
+  const flash   = document.getElementById('landingFlash');
+  const ui      = document.getElementById('landingUI');
+  if (!landing || !canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // ── State ──
+  let cogs = [];
+  let launched = false;
+  let autoSpin = false;
+  let autoVel  = 0;
+
+  // How many radians each cog must spin (its own rotation) to unlock the next
+  const UNLOCK_RADS = window.innerWidth <= 640 ? Math.PI * 0.28 : Math.PI * 0.45;
+
+  // ── Build 20 cogs in a machine-like layout ──
+  function build() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const W = canvas.width, H = canvas.height;
+    const mobile = W < 600;
+    const S = Math.min(W, H) / (mobile ? 520 : 820); // scale factor
+
+    cogs = [];
+
+    // Helper to add a cog meshed with its parent
+    function addCog(parentIdx, angleDeg, r, teeth) {
+      const parent = cogs[parentIdx];
+      const a = angleDeg * Math.PI / 180;
+      const gap = 2.5;
+      const dist = parent.r + r + gap;
+      let x = parent.x + Math.cos(a) * dist;
+      let y = parent.y + Math.sin(a) * dist;
+      const pad = r + 8;
+      x = Math.max(pad, Math.min(W - pad, x));
+      y = Math.max(pad, Math.min(H - pad, y));
+      cogs.push({ x, y, r, teeth, angle: 0, vel: 0, cumRot: 0,
+                  active: false, parentIdx });
+    }
+
+    // ── COG 0: main drive cog with handle - bottom-center ──
+    const r0 = Math.min(mobile ? 56 : 80, W * 0.095);
+    const cx = W * 0.5, cy = H * 0.60;
+    cogs.push({ x:cx, y:cy, r:r0, teeth:18,
+                angle:0, vel:0, cumRot:0, active:true, parentIdx:-1 });
+
+    const GAP = 2.5;
+    const tk = r => Math.max(7, Math.round(r * 0.46));
+
+    function mesh(parentIdx, angleDeg, r) {
+      const p = cogs[parentIdx];
+      const a = angleDeg * Math.PI / 180;
+      const d = p.r + r + GAP;
+      const pad = r + 10;
+      const x = Math.max(pad, Math.min(W-pad, p.x + Math.cos(a)*d));
+      const y = Math.max(pad, Math.min(H-pad, p.y + Math.sin(a)*d));
+      cogs.push({ x, y, r, teeth:tk(r), angle:0, vel:0, cumRot:0,
+                  active:false, parentIdx });
+    }
+
+    // ── MACHINE LAYOUT ──
+    // Think of a factory press or clock movement:
+    // Large drive gear → two big flanking gears (same level)
+    // → each drives a medium gear above it
+    // → those drive smaller gears that cross-connect
+    // → pinions feed the top output cluster
+
+    // Tier 1 - two large flanking gears meshed with drive
+    const rL = r0 * 0.80;    // left large
+    const rR2 = r0 * 0.68;   // right medium-large (different size = different speed)
+    mesh(0, 210, rL);          // 1 lower-left
+    mesh(0, 330, rR2);         // 2 lower-right
+
+    // Tier 2 - medium gears above flanks
+    const rML = r0 * 0.55;
+    const rMR = r0 * 0.48;
+    mesh(1, 270, rML);         // 3 above left flank
+    mesh(2, 270, rMR);         // 4 above right flank
+    mesh(1, 340, r0*0.38);     // 5 upper-right of left flank (cross-connect)
+    mesh(2, 200, r0*0.38);     // 6 upper-left of right flank (cross-connect)
+
+    // Tier 3 - pinions bridging the two sides
+    const rP = r0 * 0.30;
+    mesh(3, 310, rP);          // 7 pinion off left medium
+    mesh(4, 230, rP);          // 8 pinion off right medium
+    mesh(3, 270, rP);          // 9 direct above left medium
+    mesh(4, 270, rP);          // 10 direct above right medium
+    mesh(5, 270, rP);          // 11 above cross-left
+    mesh(6, 270, rP);          // 12 above cross-right
+
+    // Tier 4 - small output gears at top
+    const rS = r0 * 0.22;
+    mesh(9,  270, rS);         // 13
+    mesh(9,  180, rS);         // 14
+    mesh(10, 270, rS);         // 15
+    mesh(10,   0, rS);         // 16
+    mesh(11, 270, rS);         // 17
+    mesh(12, 270, rS);         // 18
+
+    // Final top gear - output shaft
+    const rOut = r0 * 0.35;
+    mesh(13, 270, rOut);       // 19 - top output
+
+    positionUI();
+  }
+
+  function positionUI() {
+    if (!ui || !cogs[0]) return;
+    const c = cogs[0];
+    const handleEnd = c.y + c.r + c.r * 1.1 + c.r * 0.12 + 18;
+    ui.style.top = Math.min(handleEnd, canvas.height - 80) + 'px';
+  }
+
+  // ── Draw one cog ──
+  function drawCog(c) {
+    const { x, y, r, teeth, angle, active } = c;
+    const isMain = c === cogs[0];
+    const toothH = r * 0.35;
+    const tw = (Math.PI * 2 / teeth) * 0.4;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // Glow
+    ctx.shadowColor = active ? '#38bdf8' : '#0a1a30';
+    ctx.shadowBlur  = active ? (autoSpin ? 28 : 14) : 4;
+    ctx.globalAlpha = active ? 1 : 0.18;
+
+    // Body + teeth
+    ctx.beginPath();
+    for (let t = 0; t < teeth; t++) {
+      const a0 = (t / teeth) * Math.PI * 2 - tw / 2;
+      const a1 = a0 + tw;
+      const a2 = ((t + 0.5) / teeth) * Math.PI * 2 - tw * 0.5;
+      const a3 = a2 + tw;
+      ctx.arc(0, 0, r, a0, a1);
+      ctx.lineTo(Math.cos(a1) * (r + toothH), Math.sin(a1) * (r + toothH));
+      ctx.lineTo(Math.cos(a3) * (r + toothH), Math.sin(a3) * (r + toothH));
+      ctx.arc(0, 0, r, a3, ((t + 1) / teeth) * Math.PI * 2 - tw / 2);
+    }
+    ctx.closePath();
+
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r + toothH);
+    if (active) {
+      g.addColorStop(0, 'rgba(56,130,240,0.8)');
+      g.addColorStop(1, 'rgba(8,20,60,0.92)');
+    } else {
+      g.addColorStop(0, 'rgba(10,20,50,0.5)');
+      g.addColorStop(1, 'rgba(4,8,22,0.7)');
+    }
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = active ? '#38bdf8' : '#0c2040';
+    ctx.lineWidth = active ? (isMain ? 2.5 : 1.8) : 0.7;
+    ctx.stroke();
+
+    // Hub
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = active ? 'rgba(56,189,248,0.22)' : 'rgba(10,30,70,0.4)';
+    ctx.fill();
+    ctx.strokeStyle = active ? '#38bdf8' : '#0c2040';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.09, 0, Math.PI * 2);
+    ctx.fillStyle = active ? '#7dd3fc' : '#0c2040';
+    ctx.fill();
+
+    ctx.restore();
+
+    // Handle on main cog only
+    if (isMain) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      const hw = r * 0.18, hl = r * 1.1;
+      const hg = ctx.createLinearGradient(0, r, 0, r + hl);
+      hg.addColorStop(0, '#7dd3fc');
+      hg.addColorStop(1, '#1d4ed8');
+      ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 16;
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.roundRect(-hw / 2, r - 2, hw, hl, hw / 2);
+      ctx.fillStyle = hg; ctx.fill();
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, r + hl, hw * 0.75, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e3a8a'; ctx.fill();
+      ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // ── Animation loop ──
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ── Velocity ──
+    if (autoSpin) {
+      autoVel = Math.min(autoVel + 0.002, 0.06);
+      cogs[0].vel = autoVel;
+    } else {
+      cogs[0].vel *= 0.91;
+    }
+
+    // ── Propagate velocities to ALL cogs via gear ratio (active or not) ──
+    // This ensures that when a cog activates, it already has the right speed
+    for (let i = 1; i < cogs.length; i++) {
+      const p = cogs[cogs[i].parentIdx];
+      cogs[i].vel = -p.vel * (p.r / cogs[i].r);
+    }
+
+    // ── Move active cogs & track cog 0 cumulative CW rotation ──
+    for (let i = 0; i < cogs.length; i++) {
+      if (!cogs[i].active) continue;
+      cogs[i].angle += cogs[i].vel;
+    }
+
+    // Track cog 0's total CW rotation for unlock + bar
+    if (cogs[0].vel > 0) cogs[0].cumRot += cogs[0].vel;
+    if (cogs[0].vel < 0) cogs[0].cumRot = Math.max(0, cogs[0].cumRot + cogs[0].vel);
+
+    // ── Unlock cogs based on cog 0's total CW rotation ──
+    // Each cog unlocks when cog 0 has spun UNLOCK_RADS more since last unlock
+    const totalUnlocked = Math.floor(cogs[0].cumRot / UNLOCK_RADS);
+    for (let i = 1; i < cogs.length; i++) {
+      if (!cogs[i].active && totalUnlocked >= i) {
+        cogs[i].active = true;
+        if (totalUnlocked >= 19) triggerLaunch();
+      }
+    }
+
+    // ── Bar rises smoothly based on cog 0 rotation progress ──
+    const progress = Math.min(1, cogs[0].cumRot / (UNLOCK_RADS * 19));
+    bar.style.width = (progress * 100) + '%';
+
+    // ── CCW: deactivate last active cog & drain cumRot ──
+    if (!autoSpin && cogs[0].vel < -0.005) {
+      const now = performance.now();
+      if (!frame._lastDrain || now - frame._lastDrain > 350) {
+        for (let i = cogs.length - 1; i >= 1; i--) {
+          if (cogs[i].active) {
+            cogs[i].active = false;
+            cogs[0].cumRot = Math.max(0, (i - 1) * UNLOCK_RADS);
+            frame._lastDrain = now;
+            break;
+          }
+        }
+      }
+    }
+
+    // ── Draw: inactive → active → cog0 always on top ──
+    for (let i = 1; i < cogs.length; i++) if (!cogs[i].active) drawCog(cogs[i]);
+    for (let i = 1; i < cogs.length; i++) if ( cogs[i].active) drawCog(cogs[i]);
+    drawCog(cogs[0]); // cog 0 + handle always frontmost
+
+    if (window.innerWidth <= 640) {
+      setTimeout(() => requestAnimationFrame(frame), 24); // ~40fps on mobile
+    } else {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  // ── Input: drag/swipe anywhere on landing screen ──
+  let dragging = false;
+  let lastAngle = 0;
+
+  function evtPt(e) {
+    const s = e.changedTouches ? e.changedTouches[0] : (e.touches ? e.touches[0] : e);
+    return { x: s.clientX, y: s.clientY };
+  }
+  function angleTo(pt) {
+    return Math.atan2(pt.y - cogs[0].y, pt.x - cogs[0].x);
+  }
+
+  function onDown(e) {
+    if (launched) return;
+    e.preventDefault();
+    dragging  = true;
+    lastAngle = angleTo(evtPt(e));
+  }
+  function onMove(e) {
+    if (!dragging || launched) return;
+    e.preventDefault();
+    const pt = evtPt(e);
+    const a  = angleTo(pt);
+    let delta = a - lastAngle;
+    if (delta >  Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+    lastAngle = a;
+    // Resistance: feels mechanical, not instant
+    // On touch devices, deltas are naturally smaller - apply extra boost
+    const isTouchEvt = e.touches || e.changedTouches;
+    const mult = isTouchEvt ? 3.8 : 1.4;
+    const maxV = isTouchEvt ? 0.26 : 0.12;
+    cogs[0].vel = Math.max(-maxV, Math.min(maxV, delta * mult));
+  }
+  function onUp() { dragging = false; }
+
+  landing.addEventListener('mousedown',  onDown, { passive: false });
+  landing.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove',   onMove, { passive: false });
+  window.addEventListener('touchmove',   onMove, { passive: false });
+  window.addEventListener('mouseup',     onUp);
+  window.addEventListener('touchend',    onUp);
+
+  // ── Launch ──
+  function triggerLaunch() {
+    if (launched) return;
+    launched = true;
+    autoSpin = true;
+    bar.style.width = '100%';
+    setTimeout(() => {
+      let op = 0;
+      const iv = setInterval(() => {
+        op = Math.min(1, op + 0.055);
+        flash.style.opacity = op;
+        if (op >= 1) {
+          clearInterval(iv);
+          landing.style.display = 'none';
+          const isTouch = window.matchMedia('(hover:none)').matches;
+          if (!isTouch) {
+            document.body.style.cursor = 'none';
+            const cc = document.getElementById('cogGlowCursor');
+            if (cc) cc.style.display = 'block';
+            window._cogGlowActive = true;
+          }
+        }
+      }, 16);
+    }, 1400);
+  }
+
+  build();
+  window.addEventListener('resize', build);
+  window._landingCogs = cogs; // expose for LED wire system
+  // Pause when tab hidden to save CPU
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) launched = launched; // pause handled by rAF auto-pause
+  });
+  frame();
+})();
+
+// =
+// GLOWING COG CURSOR - always spinning
+// =
+(function initCogGlowCursor() {
+  const cursor = document.getElementById('cogGlowCursor');
+  const gear   = document.getElementById('cogGlowGear');
+  if (!cursor) return;
+
+  let angle = 0;
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+
+  // Track mouse position
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    if (window._cogGlowActive) {
+      cursor.style.left = mouseX + 'px';
+      cursor.style.top  = mouseY + 'px';
+    }
+    // Also move fist cursor
+    const fist = document.getElementById('fistCursor');
+    if (fist && fist.style.display !== 'none') {
+      fist.style.left = e.clientX + 'px';
+      fist.style.top  = e.clientY + 'px';
+    }
+  });
+
+  // Always-spinning animation loop
+  function spinLoop() {
+    if (window._cogGlowActive) {
+      angle += 2.5;
+      if (gear) gear.style.transform = `rotate(${angle}deg)`;
+      // Sync glow color with accent
+      const glow = window._accent1 || '#38bdf8';
+      const svg = cursor.querySelector('svg');
+      if (svg) svg.style.filter = `drop-shadow(0 0 5px ${glow})drop-shadow(0 0 12px ${glow}66)`;
+    }
+    requestAnimationFrame(spinLoop);
+  }
+  spinLoop();
+})();
+
+// =
+// FRONTEND "BORING RIGHT?" OVERLAY
+// =
+(function initFrontendOverlay() {
+  const overlay = document.getElementById('frontendOverlay');
+  const section = document.getElementById('skillFrontend');
+  if (!overlay || !section) return;
+
+  let shown = false;
+  const io = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting && !shown) {
+      shown = true;
+      overlay.style.pointerEvents = 'all';
+      overlay.style.opacity = '1';
+      // Lock scroll
+      const wrapper = document.getElementById('appWrapper');
+      if (wrapper) wrapper.style.overflow = 'hidden';
+      // Switch to fist cursor (desktop only)
+      const isMobileDevice = window.innerWidth <= 640;
+      if (!isMobileDevice) {
+        document.body.classList.add('fist-mode');
+        if (window._cogGlowActive) {
+          const cc = document.getElementById('cogGlowCursor');
+          if (cc) cc.style.display = 'none';
+        }
+        const fist = document.getElementById('fistCursor');
+        if (fist) fist.style.display = 'block';
+      }
+    }
+  }, { threshold: 0.35 });
+  io.observe(section);
+})();
+
+function smashFrontendBox() {
+  const box       = document.getElementById('frontendPunchBox');
+  const overlay   = document.getElementById('frontendOverlay');
+  const frags     = document.getElementById('frontendFragments');
+  if (!box || !overlay) return;
+
+  const rect = box.getBoundingClientRect();
+  const FRAG = 16;
+  const fw = rect.width / FRAG, fh = rect.height / (FRAG / 2);
+
+  // Create fragments
+  for (let r = 0; r < FRAG / 2; r++) {
+    for (let c = 0; c < FRAG; c++) {
+      const f = document.createElement('div');
+      f.style.cssText = `position:fixed;width:${fw}px;height:${fh}px;
+        left:${rect.left + c * fw}px;top:${rect.top + r * fh}px;
+        background:rgba(5,15,30,0.92);border:1px solid rgba(56,189,248,0.2);
+        z-index:9010;transition:transform 2.0s cubic-bezier(0.23,1,0.32,1),opacity 1.6s;`;
+      frags.appendChild(f);
+      requestAnimationFrame(() => {
+        const vx = (Math.random() - 0.5) * 600, vy = Math.random() * 400 + 200, rot = (Math.random() - 0.5) * 720;
+        f.style.transform = `translate(${vx}px,${vy}px) rotate(${rot}deg)`;
+        f.style.opacity = '0';
+      });
+    }
+  }
+  box.style.display = 'none';
+
+  // Fade out overlay after fragments fall
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+    // Restore scroll
+    const wrapper = document.getElementById('appWrapper');
+    if (wrapper) wrapper.style.overflow = '';
+    // Make particles glow
+    window._particleSpeedMult = 4;
+    document.body.classList.add('glow-mode');
+    // Switch fist cursor back to cog cursor
+    document.body.classList.remove('fist-mode');
+    const fist = document.getElementById('fistCursor');
+    if (fist) fist.style.display = 'none';
+    if (window._cogGlowActive) {
+      const cc = document.getElementById('cogGlowCursor');
+      if (cc) cc.style.display = 'block';
+    }
+  }, 1800);
+}
+
+
+// =
+// LED SIGNS - light up at 15,30,45,60,75,90% bar
+// Curved SVG power cords connect to specific cog wheels
+// =
+(function initLEDs() {
+  const PCT_THRESHOLDS = [15, 30, 45, 60, 75, 90];
+  // led0=Red(Fancy), led1=Yellow(Seeing), led2=Blue(You here!),
+  // led3=Orange(I'm John!), led4=Green(This is my), led5=Pink(Portfolio!)
+  const COLORS = ['#ef4444','#eab308','#38bdf8','#f97316','#22c55e','#ec4899'];
+  const GLOWS  = [
+    'rgba(239,68,68,0.7)','rgba(234,179,8,0.7)','rgba(56,189,248,0.7)',
+    'rgba(249,115,22,0.7)','rgba(34,197,94,0.7)','rgba(236,72,153,0.7)'
+  ];
+  // Which cog index each wire connects to
+  const COG_TARGETS = [1, 3, 7, 2, 4, 6];
+
+  function getLedEl(i) { return document.getElementById('led' + i); }
+
+  // ── Create SVG overlay for curved power cords ──
+  const landing = document.getElementById('landingPage');
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;overflow:visible;';
+  if (landing) landing.insertBefore(svg, landing.querySelector('#landingFlash'));
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  svg.appendChild(defs);
+
+  // Glow filter
+  const flt = document.createElementNS('http://www.w3.org/2000/svg','filter');
+  flt.id = 'wireGlow';
+  const blur = document.createElementNS('http://www.w3.org/2000/svg','feGaussianBlur');
+  blur.setAttribute('stdDeviation','3'); blur.setAttribute('result','b');
+  const merge = document.createElementNS('http://www.w3.org/2000/svg','feMerge');
+  ['b','SourceGraphic'].forEach(v => {
+    const n = document.createElementNS('http://www.w3.org/2000/svg','feMergeNode');
+    if (v !== 'SourceGraphic') n.setAttribute('in', v);
+    else n.setAttribute('in', v);
+    merge.appendChild(n);
+  });
+  flt.appendChild(blur); flt.appendChild(merge);
+  defs.appendChild(flt);
+
+  // Create path + dot for each wire
+  const wirePaths = COLORS.map((color, i) => {
+    const bg = document.createElementNS('http://www.w3.org/2000/svg','path');
+    bg.setAttribute('fill','none');
+    bg.setAttribute('stroke', color);
+    bg.setAttribute('stroke-width','5');
+    bg.setAttribute('stroke-linecap','round');
+    bg.setAttribute('opacity','0');
+    svg.appendChild(bg);
+
+    const fg = document.createElementNS('http://www.w3.org/2000/svg','path');
+    fg.setAttribute('fill','none');
+    fg.setAttribute('stroke', color);
+    fg.setAttribute('stroke-width','2');
+    fg.setAttribute('stroke-linecap','round');
+    fg.setAttribute('opacity','0');
+    fg.setAttribute('filter','url(#wireGlow)');
+    svg.appendChild(fg);
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('r','6');
+    dot.setAttribute('fill', color);
+    dot.setAttribute('opacity','0');
+    dot.setAttribute('filter','url(#wireGlow)');
+    svg.appendChild(dot);
+
+    return { bg, fg, dot };
+  });
+
+  function buildPath(sx, sy, ex, ey, isLeft) {
+    // Catenary-style: cable droops naturally under gravity
+    const midX = (sx + ex) / 2;
+    const sag   = 55 + Math.abs(ex - sx) * 0.18;
+    const peakY = Math.max(sy, ey) + sag;
+    // Two control points - one near the sign (horizontal exit), one near the cog (entry)
+    const cp1x = isLeft ? sx + 60  : sx - 60;
+    const cp1y = sy + sag * 0.6;
+    const cp2x = isLeft ? ex - 40  : ex + 40;
+    const cp2y = ey + sag * 0.3;
+    return `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${ex} ${ey}`;
+  }
+
+  function updateWires() {
+    const cogs = window._landingCogs;
+    const lRect = landing ? landing.getBoundingClientRect() : { left:0, top:0 };
+    svg.setAttribute('viewBox', `0 0 ${innerWidth} ${innerHeight}`);
+
+    COLORS.forEach((_, i) => {
+      const led = getLedEl(i);
+      if (!led) return;
+      const r = led.getBoundingClientRect();
+      const isLeft = i < 3;
+      // Exit point: right edge of left boxes, left edge of right boxes
+      const sx = isLeft ? r.right  - lRect.left : r.left - lRect.left;
+      const sy = r.top - lRect.top + r.height / 2;
+
+      const cog = cogs && cogs[COG_TARGETS[i]];
+      const ex = cog ? cog.x : (isLeft ? innerWidth*0.35 : innerWidth*0.65);
+      const ey = cog ? cog.y : innerHeight * 0.5;
+
+      const d = buildPath(sx, sy, ex, ey, isLeft);
+      const lit = led.dataset.lit;
+
+      wirePaths[i].bg.setAttribute('d', d);
+      wirePaths[i].bg.setAttribute('opacity', lit ? '0.25' : '0');
+      wirePaths[i].fg.setAttribute('d', d);
+      wirePaths[i].fg.setAttribute('opacity', lit ? '0.95' : '0');
+      wirePaths[i].fg.setAttribute('stroke-width', lit ? '2.5' : '2');
+      wirePaths[i].dot.setAttribute('cx', ex);
+      wirePaths[i].dot.setAttribute('cy', ey);
+      wirePaths[i].dot.setAttribute('opacity', lit ? '0.95' : '0');
+      wirePaths[i].dot.setAttribute('r', lit ? '7' : '4');
+    });
+
+    if (window.innerWidth <= 640) {
+      setTimeout(() => requestAnimationFrame(updateWires), 50); // 20fps on mobile
+    } else {
+      requestAnimationFrame(updateWires);
+    }
+  }
+
+  // ── Light up / dim logic ──
+  function lightUp(i) {
+    const led = getLedEl(i);
+    if (!led || led.dataset.lit) return;
+    led.dataset.lit = '1';
+    led.style.opacity = '1';
+    const box = led.querySelector('div');
+    if (box) {
+      box.style.boxShadow = `0 0 28px ${GLOWS[i]},inset 0 0 14px ${GLOWS[i].replace('0.7','0.1')}`;
+      box.style.borderColor = COLORS[i];
+    }
+    const span = led.querySelector('span');
+    if (span) span.style.textShadow = `0 0 12px ${COLORS[i]},0 0 28px ${GLOWS[i]}`;
+    led.classList.add('lit');
+  }
+
+  function dimDown(i) {
+    const led = getLedEl(i);
+    if (!led || !led.dataset.lit) return;
+    delete led.dataset.lit;
+    led.style.opacity = '0.15';
+    const box = led.querySelector('div');
+    if (box) { box.style.boxShadow = ''; box.style.borderColor = ''; }
+    const span = led.querySelector('span');
+    if (span) span.style.textShadow = 'none';
+    led.classList.remove('lit');
+  }
+
+  function checkPower() {
+    const bar = document.getElementById('landingBar');
+    if (!bar) { requestAnimationFrame(checkPower); return; }
+    const pct = parseFloat(bar.style.width) || 0;
+    PCT_THRESHOLDS.forEach((threshold, i) => {
+      if (pct >= threshold) lightUp(i); else dimDown(i);
+    });
+    requestAnimationFrame(checkPower);
+  }
+
+  // Remove old stub wire divs (replaced by SVG)
+  document.querySelectorAll('[id^="wire"]').forEach(w => w.style.display = 'none');
+
+  setTimeout(() => { updateWires(); checkPower(); }, 400);
+})();
+
+
+// =
+// RAINBOW SCROLL - Database Design section
+// =
+(function initRainbowDB() {
+  const section = document.getElementById('skillDB');
+  if (!section) return;
+
+  const targets = [
+    document.getElementById('dbHeading'),
+    document.getElementById('dbPara'),
+    document.getElementById('dbItem1'),
+    document.getElementById('dbItem2'),
+    document.getElementById('dbItem3'),
+  ].filter(Boolean);
+
+  if (!targets.length) return;
+
+  // Rainbow stops - red repeated at end for seamless loop
+  const stops = '#ef4444, #f97316, #eab308, #22c55e, #38bdf8, #818cf8, #ec4899, #ef4444';
+  const grad  = `linear-gradient(90deg, ${stops})`;
+
+  // Apply once - use setAttribute on style so it overrides inline styles
+  targets.forEach(el => {
+    el.style.setProperty('background-image',           grad);
+    el.style.setProperty('background-size',            '200% auto');
+    el.style.setProperty('background-position',        '0% center');
+    el.style.setProperty('-webkit-background-clip',    'text');
+    el.style.setProperty('-webkit-text-fill-color',    'transparent');
+    el.style.setProperty('background-clip',            'text');
+    el.style.setProperty('color',                      'transparent');
+  });
+
+  let pos = 0;
+
+  function applyGradient() {
+    targets.forEach(el => {
+      el.style.setProperty('background-image',        grad);
+      el.style.setProperty('background-size',         '200% auto');
+      el.style.setProperty('-webkit-background-clip', 'text');
+      el.style.setProperty('-webkit-text-fill-color', 'transparent');
+      el.style.setProperty('background-clip',         'text');
+      el.style.setProperty('color',                   'transparent');
+    });
+  }
+
+  function animate() {
+    pos = (pos + (window.innerWidth <= 640 ? 0.08 : 0.18)) % 100;
+    // Re-assert gradient every frame (beats any external style overwrite)
+    applyGradient();
+    targets.forEach(el => {
+      el.style.setProperty('background-position', pos + '% center');
+    });
+    if (window.innerWidth <= 640) {
+      setTimeout(() => requestAnimationFrame(animate), 50);
+    } else {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  // Small delay so DOM is ready
+  setTimeout(() => { applyGradient(); animate(); }, 300);
+})();
+
+</script>
+</body>
+</html>
