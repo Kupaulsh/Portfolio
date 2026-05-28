@@ -502,13 +502,21 @@ body.cog-cursor-mode #cogCursor {
   .pulse-ring + *            { font-size: 0.7rem !important; }
 
   /* ── Skill sections ── */
-  .skill-section             { padding: 60px 0 70px !important; min-height: unset !important; }
-  /* Prevent overflow from causing overlap */
+  /* ── Bigger section gaps on mobile ── */
+  .skill-section             { padding: 90px 0 90px !important; min-height: unset !important; }
   #skillBackend              { overflow: hidden !important; }
   #skillFrontend             { overflow: hidden !important; }
   #skillDB                   { overflow: hidden !important; }
-  /* Sections can't bleed into each other */
   .skill-section             { position: relative !important; z-index: 1 !important; }
+
+  /* ── Consistent section and card widths on mobile ── */
+  .max-w-6xl.mx-auto,
+  .max-w-2xl.mx-auto        { padding-left: 20px !important; padding-right: 20px !important; }
+  .cards-grid               { padding: 0 !important; gap: 14px !important; }
+  .glow-card, .blur-card    { width: 100% !important; box-sizing: border-box !important; }
+  /* All sections same horizontal padding */
+  section.max-w-6xl.mx-auto.px-6,
+  section.max-w-6xl         { padding-left: 20px !important; padding-right: 20px !important; }
 
   /* ── Wider crack on mobile ── */
   #skillBackend div[style*="filter:blur"] {
@@ -2525,7 +2533,7 @@ document.addEventListener('mousemove', (e) => {
   let autoVel  = 0;
 
   // How many radians each cog must spin (its own rotation) to unlock the next
-  const UNLOCK_RADS = window.innerWidth <= 640 ? Math.PI * 0.28 : Math.PI * 0.45;
+  const UNLOCK_RADS = window.innerWidth <= 640 ? Math.PI * 0.18 : Math.PI * 0.45;
 
   // ── Build 20 cogs in a machine-like layout ──
   function build() {
@@ -2806,8 +2814,8 @@ document.addEventListener('mousemove', (e) => {
     // Resistance: feels mechanical, not instant
     // On touch devices, deltas are naturally smaller - apply extra boost
     const isTouchEvt = e.touches || e.changedTouches;
-    const mult = isTouchEvt ? 3.8 : 1.4;
-    const maxV = isTouchEvt ? 0.26 : 0.12;
+    const mult = isTouchEvt ? 5.5 : 1.4;
+    const maxV = isTouchEvt ? 0.35 : 0.12;
     cogs[0].vel = Math.max(-maxV, Math.min(maxV, delta * mult));
   }
   function onUp() { dragging = false; }
@@ -3112,8 +3120,14 @@ function smashFrontendBox() {
     led.style.opacity = '1';
     const box = led.querySelector('div');
     if (box) {
-      box.style.boxShadow = `0 0 28px ${GLOWS[i]},inset 0 0 14px ${GLOWS[i].replace('0.7','0.1')}`;
+      const isMob = window.innerWidth <= 640;
+      box.style.boxShadow = isMob
+        ? `0 0 18px ${GLOWS[i]}`
+        : `0 0 28px ${GLOWS[i]},inset 0 0 14px ${GLOWS[i].replace('0.7','0.1')}`;
       box.style.borderColor = COLORS[i];
+      if (!isMob) {
+        box.style.background = COLORS[i].replace(/^#/, 'rgba(') + ',0.12)'; // no bg on mobile
+      }
     }
     const span = led.querySelector('span');
     if (span) span.style.textShadow = `0 0 12px ${COLORS[i]},0 0 28px ${GLOWS[i]}`;
