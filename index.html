@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full" style="background-color:#020b18;">
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -636,10 +636,10 @@ body.cog-cursor-mode #cogCursor {
   #landingUI > div:first-child { font-size: 0.65rem !important; letter-spacing: .15em !important; }
   #landingUI div[style*="height:12px"] { height: 8px !important; }
 
-  /* LED sign text smaller on mobile */
-  .led-sign span { font-size: 0.52rem !important; letter-spacing: .02em !important; }
-  .led-sign > div { padding: 7px 10px !important; text-align: center !important; display: flex !important; align-items: center !important; justify-content: center !important; }
-  #ledLeft, #ledRight { gap: 18px !important; }
+  /* LED signs — hidden on mobile (too cramped) */
+  #ledLeft, #ledRight { display: none !important; }
+  /* Power wire SVG also hidden on mobile */
+  #powerWireSvg { display: none !important; }
 
   /* ── FIX 1: CENTER Backend text on mobile ── */
   #skillBackend .section-reveal:first-child {
@@ -747,7 +747,7 @@ body.cog-cursor-mode #cogCursor {
   <!-- FIST CURSOR -->
   <div id="fistCursor">👊</div>
 
-  <div class="app-wrapper grid-bg" id="appWrapper" style="background-color: #020b18; font-family: 'Outfit', sans-serif;">
+  <div class="app-wrapper grid-bg" id="appWrapper" style="background-color: #020b18; font-family: 'Outfit', sans-serif; min-height: 100vh;">
    <canvas id="particleCanvas"></canvas>
 
    <!-- COG CURSOR -->
@@ -1364,7 +1364,8 @@ body.cog-cursor-mode #cogCursor {
   function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   resize(); window.addEventListener('resize', resize);
 
-  for (let i = 0; i < 50; i++) {
+  const particleCount = window.innerWidth <= 640 ? 18 : 50;
+  for (let i = 0; i < particleCount; i++) {
     particles.push({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
@@ -1392,7 +1393,16 @@ body.cog-cursor-mode #cogCursor {
       ctx.fillStyle = `rgba(${accentRgb},${alpha})`; ctx.fill();
       ctx.shadowBlur = 0;
     });
-    const connectDist = glowOn ? 150 : 120;
+    // Skip connection lines on mobile — most expensive operation
+  if (window.innerWidth <= 640) {
+    if (isMobileBrowser) {
+      setTimeout(() => requestAnimationFrame(animateParticles), 32);
+    } else {
+      requestAnimationFrame(animateParticles);
+    }
+    return;
+  }
+  const connectDist = glowOn ? 150 : 120;
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
